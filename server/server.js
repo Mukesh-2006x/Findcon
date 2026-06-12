@@ -6,15 +6,38 @@ const { Sequelize, DataTypes } = require("sequelize");
 require("dotenv").config();
 const nodemailer = require("nodemailer");
 
-const transporter = nodemailer.createTransport({
-  host: process.env.SMTP_HOST || "smtp.gmail.com",
-  port: parseInt(process.env.SMTP_PORT || "465"),
-  secure: parseInt(process.env.SMTP_PORT || "465") === 465,
-  auth: {
-    user: process.env.SMTP_USER,
-    pass: process.env.SMTP_PASS,
-  },
-});
+const dns = require("dns");
+
+let transporter = null;
+
+const smtpUser = process.env.SMTP_USER || "agent1.mukesh@gmail.com";
+const smtpPass = process.env.SMTP_PASS || "zvoidbvzygnzhflh";
+
+dns.promises.lookup("smtp.gmail.com", { family: 4 })
+  .then(({ address }) => {
+    transporter = nodemailer.createTransport({
+      host: address,
+      port: 465,
+      secure: true,
+      auth: {
+        user: smtpUser,
+        pass: smtpPass,
+      },
+      tls: {
+        servername: "smtp.gmail.com",
+      },
+    });
+  })
+  .catch((err) => {
+    console.warn("[SMTP] IPv4 DNS lookup failed, falling back to service: 'gmail'", err.message);
+    transporter = nodemailer.createTransport({
+      service: "gmail",
+      auth: {
+        user: smtpUser,
+        pass: smtpPass,
+      },
+    });
+  });
 
 
 
