@@ -244,28 +244,35 @@ app.post("/api/send-verification", async (req, res) => {
     const response = await axios.post(
       "https://www.fast2sms.com/dev/bulkV2",
       {
-        route: "otp",
-        variables_values: code,
+        route: "q",
+        message: `Your Findcon OTP is ${code}. Valid for 10 minutes. Do not share with anyone.`,
+        language: "english",
+        flash: 0,
         numbers: phone,
       },
       {
         headers: {
           authorization: process.env.FAST2SMS_API_KEY,
+          "Content-Type": "application/json",
         },
         timeout: 10000,
       }
     );
 
+    console.log("[Fast2SMS] Full response:", JSON.stringify(response.data));
+
     if (response.data.return === true) {
       console.log(`[Fast2SMS] OTP sent to ${phone}. Request ID: ${response.data.request_id}`);
       res.json({ success: true, simulated: false });
     } else {
-      console.error("Fast2SMS error response:", response.data);
+      console.error("Fast2SMS rejected:", JSON.stringify(response.data));
       res.status(500).json({ error: "Failed to send OTP", message: JSON.stringify(response.data) });
     }
   } catch (err) {
-    console.error("Fast2SMS OTP error:", err.message);
-    res.status(500).json({ error: "Failed to send OTP via Fast2SMS", message: err.message });
+    // Log the full error response body from Fast2SMS for debugging
+    const errBody = err.response ? JSON.stringify(err.response.data) : err.message;
+    console.error("Fast2SMS OTP error:", errBody);
+    res.status(500).json({ error: "Failed to send OTP via Fast2SMS", message: errBody });
   }
 });
 
