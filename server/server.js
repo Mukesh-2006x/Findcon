@@ -347,6 +347,12 @@ async function startServer() {
   }
 
   if (!connected) {
+    if (process.env.VERCEL) {
+      console.error("CRITICAL ERROR: Could not connect to the cloud MySQL/TiDB database on Vercel.");
+      console.error("Please ensure that you have whitelisted '0.0.0.0/0' (allow all connections) in your TiDB Cloud console.");
+      process.exit(1);
+    }
+
     sequelize = new Sequelize("sqlite:./database.sqlite", {
       logging: false,
     });
