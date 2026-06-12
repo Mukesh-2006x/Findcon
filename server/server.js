@@ -284,8 +284,10 @@ async function ensureDatabaseExists() {
         connectTimeout: 5000, // Timeout after 5s
         ssl: {
           minVersion: "TLSv1.2",
-          rejectUnauthorized: true,
-          ca: fs.readFileSync(process.env.CA_PATH),
+          rejectUnauthorized: process.env.REJECT_UNAUTHORIZED === "true",
+          ca: process.env.CA_PATH && fs.existsSync(process.env.CA_PATH)
+            ? fs.readFileSync(process.env.CA_PATH)
+            : undefined,
         },
       });
       
@@ -314,7 +316,7 @@ async function startServer() {
           connectTimeout: 5000, // 5s connection timeout for Sequelize
           ssl: {
             minVersion: "TLSv1.2",
-            rejectUnauthorized: process.env.CA_PATH ? true : false,
+            rejectUnauthorized: process.env.REJECT_UNAUTHORIZED === "true",
             ca: process.env.CA_PATH && fs.existsSync(process.env.CA_PATH)
               ? fs.readFileSync(process.env.CA_PATH)
               : undefined,
