@@ -5,39 +5,18 @@ const fs = require("fs");
 const { Sequelize, DataTypes } = require("sequelize");
 require("dotenv").config();
 const nodemailer = require("nodemailer");
-
 const dns = require("dns");
 
-let transporter = null;
+// Force Node.js to resolve IPv4 first globally (bypasses Render's IPv6 outbound error)
+dns.setDefaultResultOrder("ipv4first");
 
-const smtpUser = "agent1.mukesh@gmail.com";
-const smtpPass = "zvoidbvzygnzhflh";
-
-dns.promises.lookup("smtp.gmail.com", { family: 4 })
-  .then(({ address }) => {
-    transporter = nodemailer.createTransport({
-      host: address,
-      port: 465,
-      secure: true,
-      auth: {
-        user: smtpUser,
-        pass: smtpPass,
-      },
-      tls: {
-        servername: "smtp.gmail.com",
-      },
-    });
-  })
-  .catch((err) => {
-    console.warn("[SMTP] IPv4 DNS lookup failed, falling back to service: 'gmail'", err.message);
-    transporter = nodemailer.createTransport({
-      service: "gmail",
-      auth: {
-        user: smtpUser,
-        pass: smtpPass,
-      },
-    });
-  });
+const transporter = nodemailer.createTransport({
+  service: "gmail",
+  auth: {
+    user: "agent1.mukesh@gmail.com",
+    pass: "zvoidbvzygnzhflh"
+  }
+});
 
 
 
