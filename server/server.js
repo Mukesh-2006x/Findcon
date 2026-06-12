@@ -28,17 +28,18 @@ async function initTransporter() {
     transporter = nodemailer.createTransport({
       host: resolvedHost,
       port: parseInt(process.env.SMTP_PORT || "587"),
-      secure: parseInt(process.env.SMTP_PORT || "587") === 465,
+      secure: process.env.SMTP_SECURE === "true" || parseInt(process.env.SMTP_PORT || "587") === 465,
       connectionTimeout: 8000,
       greetingTimeout: 8000,
       socketTimeout: 10000,
       auth: {
         user: process.env.SMTP_USER,
-        pass: process.env.SMTP_PASS,
+        pass: process.env.SMTP_PASS || process.env.SMTP_PASSWORD,
       },
       tls: {
         // Keep the original hostname for certificate validation even though we connect by IP
         servername: process.env.SMTP_HOST,
+        rejectUnauthorized: process.env.REJECT_UNAUTHORIZED === "true"
       },
     });
     console.log("[SMTP] Transporter initialized successfully.");
@@ -280,7 +281,7 @@ app.post("/api/send-verification", async (req, res) => {
 
   try {
     const mailOptions = {
-      from: `"Findcon" <${process.env.SENDER_EMAIL || process.env.SMTP_USER || "noreply@findcon.com"}>`,
+      from: `"Findcon" <${process.env.SENDER_EMAIL || process.env.EMAIL_FROM || process.env.SMTP_USER || "noreply@findcon.com"}>`,
       to: email,
       subject: "Findcon Verification Code",
       html: `
