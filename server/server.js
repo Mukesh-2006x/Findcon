@@ -253,7 +253,7 @@ app.post("/api/send-verification", async (req, res) => {
 
   try {
     const mailOptions = {
-      from: `"Findcon" <${process.env.SMTP_USER || "noreply@findcon.com"}>`,
+      from: `"Findcon" <${process.env.SENDER_EMAIL || process.env.SMTP_USER || "noreply@findcon.com"}>`,
       to: email,
       subject: "Findcon Verification Code",
       html: `
