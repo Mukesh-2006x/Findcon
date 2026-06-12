@@ -4,9 +4,19 @@ const morgan = require("morgan");
 const fs = require("fs");
 const { Sequelize, DataTypes } = require("sequelize");
 require("dotenv").config();
-const { Resend } = require("resend");
+const nodemailer = require("nodemailer");
 
-const resendClient = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
+const transporter = process.env.SMTP_HOST
+  ? nodemailer.createTransport({
+      host: process.env.SMTP_HOST,
+      port: parseInt(process.env.SMTP_PORT || "587"),
+      secure: false, // true for 465, false for other ports like 587
+      auth: {
+        user: process.env.SMTP_USER,
+        pass: process.env.SMTP_PASS,
+      },
+    })
+  : null;
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -225,7 +235,7 @@ function setupModelsAndRoutes() {
   createCrudRoutes("/api/message", Message);
 }
 
-// Endpoint for sending verification code emails via Resend
+// Endpoint for sending verification code emails via Nodemailer SMTP (Brevo)
 app.post("/api/send-verification", async (req, res) => {
   const { email, code } = req.body;
   
@@ -233,14 +243,14 @@ app.post("/api/send-verification", async (req, res) => {
     return res.status(400).json({ error: "Email and code are required fields" });
   }
 
-  if (!resendClient) {
-    console.log(`[Verification Simulation] Resend API key missing. Code for ${email}: ${code}`);
+  if (!transporter) {
+    console.log(`[Verification Simulation] SMTP transporter missing. Code for ${email}: ${code}`);
     return res.json({ success: true, simulated: true, code });
   }
 
   try {
-    const response = await resendClient.emails.send({
-      from: "Findcon <noreply@findcon.com>",
+    const mailOptions = {
+      from: `"Findcon" <${process.env.SMTP_USER || "noreply@findcon.com"}>`,
       to: email,
       subject: "Findcon Verification Code",
       html: `
@@ -255,16 +265,18 @@ app.post("/api/send-verification", async (req, res) => {
             <span style="font-size: 30px; font-weight: bold; color: #ff80ab; letter-spacing: 5px; font-family: monospace;">${code}</span>
           </div>
           <p style="color: rgba(255,255,255,0.4); font-size: 11px; text-align: center; line-height: 1.4; margin-bottom: 0;">
-            This email was sent dynamically using the Resend API. If you did not make this request, you can safely ignore this email.
+            This email was sent dynamically using the Brevo SMTP API. If you did not make this request, you can safely ignore this email.
           </p>
         </div>
       `
-    });
-    console.log(`[Resend Email] Verification email sent to ${email}. ID: ${response.id || (response.data && response.data.id)}`);
+    };
+
+    const info = await transporter.sendMail(mailOptions);
+    console.log(`[SMTP Email] Verification email sent to ${email}. MessageID: ${info.messageId}`);
     res.json({ success: true, simulated: false });
   } catch (err) {
-    console.error("Resend API email error:", err.message);
-    res.status(500).json({ error: "Failed to send email via Resend", message: err.message });
+    console.error("Nodemailer SMTP email error:", err.message);
+    res.status(500).json({ error: "Failed to send email via SMTP", message: err.message });
   }
 });
 
