@@ -1,6 +1,7 @@
 const express = require("express");
 const cors = require("cors");
 const morgan = require("morgan");
+const fs = require("fs");
 const { Sequelize, DataTypes } = require("sequelize");
 require("dotenv").config();
 const { Resend } = require("resend");
@@ -17,140 +18,15 @@ app.use(morgan("dev"));
 
 // Database initialization
 const databaseUrl = process.env.DATABASE_URL || "sqlite:./database.sqlite";
-const sequelize = new Sequelize(databaseUrl, {
-  logging: false, // Set to console.log to debug SQL queries
-});
+let isMySQL = databaseUrl.startsWith("mysql:");
 
-// Database Models matching Retool API schemas
-const Credentials = sequelize.define("Credentials", {
-  userid: {
-    type: DataTypes.STRING,
-    allowNull: false,
-    unique: true,
-  },
-  password: {
-    type: DataTypes.STRING,
-    allowNull: false,
-  },
-  email: {
-    type: DataTypes.STRING,
-    allowNull: false,
-  },
-  followers: {
-    type: DataTypes.TEXT,
-    defaultValue: "",
-  },
-  following: {
-    type: DataTypes.TEXT,
-    defaultValue: "",
-  },
-  profilepic: {
-    type: DataTypes.TEXT,
-    defaultValue: "",
-  },
-}, {
-  tableName: "credentials",
-  timestamps: false,
-});
+let sequelize;
 
-const Persona = sequelize.define("Persona", {
-  userid: {
-    type: DataTypes.STRING,
-    allowNull: false,
-    unique: true,
-  },
-  username: {
-    type: DataTypes.STRING,
-    defaultValue: "",
-  },
-  age: {
-    type: DataTypes.INTEGER,
-    defaultValue: 18,
-  },
-  gender: {
-    type: DataTypes.STRING,
-    defaultValue: "",
-  },
-  relationshipstatus: {
-    type: DataTypes.STRING,
-    defaultValue: "",
-  },
-  city: {
-    type: DataTypes.STRING,
-    defaultValue: "",
-  },
-  interests: {
-    type: DataTypes.TEXT,
-    defaultValue: "",
-  },
-  othermedia: {
-    type: DataTypes.TEXT,
-    defaultValue: "",
-  },
-  profession: {
-    type: DataTypes.STRING,
-    defaultValue: "",
-  },
-  bio: {
-    type: DataTypes.TEXT,
-    defaultValue: "",
-  },
-}, {
-  tableName: "persona",
-  timestamps: false,
-});
-
-const Post = sequelize.define("Post", {
-  userid: {
-    type: DataTypes.STRING,
-    allowNull: false,
-  },
-  post: {
-    type: DataTypes.TEXT,
-    allowNull: false,
-  },
-  likes: {
-    type: DataTypes.TEXT,
-    defaultValue: "",
-  },
-  title: {
-    type: DataTypes.TEXT,
-    defaultValue: "",
-  },
-  comment: {
-    type: DataTypes.TEXT,
-    defaultValue: "",
-  },
-}, {
-  tableName: "post",
-  timestamps: false,
-});
-
-const Message = sequelize.define("Message", {
-  userid: {
-    type: DataTypes.STRING,
-    allowNull: false,
-  },
-  receiverid: {
-    type: DataTypes.STRING,
-    defaultValue: "",
-  },
-  message: {
-    type: DataTypes.TEXT,
-    defaultValue: "",
-  },
-  timestamp: {
-    type: DataTypes.STRING,
-    defaultValue: "",
-  },
-  isRead: {
-    type: DataTypes.BOOLEAN,
-    defaultValue: false,
-  },
-}, {
-  tableName: "message",
-  timestamps: false,
-});
+// Models and routes are initialized dynamically after connection is established
+let Credentials;
+let Persona;
+let Post;
+let Message;
 
 // Helper for generic REST CRUD controller routes
 function createCrudRoutes(routerPath, Model) {
@@ -210,11 +86,144 @@ function createCrudRoutes(routerPath, Model) {
   });
 }
 
-// Bind CRUD APIs 1-to-1 matching the Retool endpoints
-createCrudRoutes("/api/credentials", Credentials);
-createCrudRoutes("/api/persona", Persona);
-createCrudRoutes("/api/post", Post);
-createCrudRoutes("/api/message", Message);
+function setupModelsAndRoutes() {
+  // Database Models matching Retool API schemas
+  Credentials = sequelize.define("Credentials", {
+    userid: {
+      type: DataTypes.STRING,
+      allowNull: false,
+      unique: true,
+    },
+    password: {
+      type: DataTypes.STRING,
+      allowNull: false,
+    },
+    email: {
+      type: DataTypes.STRING,
+      allowNull: false,
+    },
+    followers: {
+      type: DataTypes.TEXT,
+      defaultValue: "",
+    },
+    following: {
+      type: DataTypes.TEXT,
+      defaultValue: "",
+    },
+    profilepic: {
+      type: DataTypes.TEXT,
+      defaultValue: "",
+    },
+  }, {
+    tableName: "credentials",
+    timestamps: false,
+  });
+
+  Persona = sequelize.define("Persona", {
+    userid: {
+      type: DataTypes.STRING,
+      allowNull: false,
+      unique: true,
+    },
+    username: {
+      type: DataTypes.STRING,
+      defaultValue: "",
+    },
+    age: {
+      type: DataTypes.INTEGER,
+      defaultValue: 18,
+    },
+    gender: {
+      type: DataTypes.STRING,
+      defaultValue: "",
+    },
+    relationshipstatus: {
+      type: DataTypes.STRING,
+      defaultValue: "",
+    },
+    city: {
+      type: DataTypes.STRING,
+      defaultValue: "",
+    },
+    interests: {
+      type: DataTypes.TEXT,
+      defaultValue: "",
+    },
+    othermedia: {
+      type: DataTypes.TEXT,
+      defaultValue: "",
+    },
+    profession: {
+      type: DataTypes.STRING,
+      defaultValue: "",
+    },
+    bio: {
+      type: DataTypes.TEXT,
+      defaultValue: "",
+    },
+  }, {
+    tableName: "persona",
+    timestamps: false,
+  });
+
+  Post = sequelize.define("Post", {
+    userid: {
+      type: DataTypes.STRING,
+      allowNull: false,
+    },
+    post: {
+      type: DataTypes.TEXT,
+      allowNull: false,
+    },
+    likes: {
+      type: DataTypes.TEXT,
+      defaultValue: "",
+    },
+    title: {
+      type: DataTypes.TEXT,
+      defaultValue: "",
+    },
+    comment: {
+      type: DataTypes.TEXT,
+      defaultValue: "",
+    },
+  }, {
+    tableName: "post",
+    timestamps: false,
+  });
+
+  Message = sequelize.define("Message", {
+    userid: {
+      type: DataTypes.STRING,
+      allowNull: false,
+    },
+    receiverid: {
+      type: DataTypes.STRING,
+      defaultValue: "",
+    },
+    message: {
+      type: DataTypes.TEXT,
+      defaultValue: "",
+    },
+    timestamp: {
+      type: DataTypes.STRING,
+      defaultValue: "",
+    },
+    isRead: {
+      type: DataTypes.BOOLEAN,
+      defaultValue: false,
+    },
+  }, {
+    tableName: "message",
+    timestamps: false,
+  });
+
+  // Bind CRUD APIs 1-to-1 matching the Retool endpoints
+  createCrudRoutes("/api/credentials", Credentials);
+  createCrudRoutes("/api/persona", Persona);
+  createCrudRoutes("/api/post", Post);
+  createCrudRoutes("/api/message", Message);
+}
 
 // Endpoint for sending verification code emails via Resend
 app.post("/api/send-verification", async (req, res) => {
@@ -270,8 +279,14 @@ async function ensureDatabaseExists() {
       const connection = await mysql.createConnection({
         host: url.hostname,
         port: url.port || 3306,
-        user: url.username,
+        user: decodeURIComponent(url.username),
         password: decodeURIComponent(url.password || ""),
+        connectTimeout: 5000, // Timeout after 5s
+        ssl: {
+          minVersion: "TLSv1.2",
+          rejectUnauthorized: true,
+          ca: fs.readFileSync(process.env.CA_PATH),
+        },
       });
       
       await connection.query(`CREATE DATABASE IF NOT EXISTS \`${dbName}\`;`);
@@ -279,17 +294,64 @@ async function ensureDatabaseExists() {
       console.log(`Database "${dbName}" checked/created successfully.`);
     } catch (err) {
       console.warn("Database pre-creation check skipped or failed:", err.message);
+      throw err; // Propagate error to trigger fallback
     }
   }
 }
 
 async function startServer() {
+  let connected = false;
+
+  if (isMySQL) {
+    try {
+      console.log("Attempting to connect to cloud MySQL/TiDB database...");
+      await ensureDatabaseExists();
+
+      // Instantiate Sequelize with MySQL
+      sequelize = new Sequelize(databaseUrl, {
+        logging: false,
+        dialectOptions: {
+          connectTimeout: 5000, // 5s connection timeout for Sequelize
+          ssl: {
+            minVersion: "TLSv1.2",
+            rejectUnauthorized: process.env.CA_PATH ? true : false,
+            ca: process.env.CA_PATH && fs.existsSync(process.env.CA_PATH)
+              ? fs.readFileSync(process.env.CA_PATH)
+              : undefined,
+          },
+        },
+      });
+
+      await sequelize.authenticate();
+      connected = true;
+      console.log("Connected to MySQL database successfully.");
+    } catch (err) {
+      console.error("\n======================================================================");
+      console.error("WARNING: Failed to connect to MySQL/TiDB Cloud database.");
+      console.error("Error details:", err.message);
+      console.error("Please add '0.0.0.0/0' to your TiDB Cloud IP Access List to connect locally.");
+      console.error("======================================================================\n");
+      console.log("Falling back to local SQLite database (database.sqlite)...");
+    }
+  }
+
+  if (!connected) {
+    sequelize = new Sequelize("sqlite:./database.sqlite", {
+      logging: false,
+    });
+    try {
+      await sequelize.authenticate();
+      console.log("Connected to fallback SQLite database successfully.");
+    } catch (err) {
+      console.error("Failed to initialize SQLite database:", err.message);
+      process.exit(1);
+    }
+  }
+
+  // Define models and routes on the chosen sequelize instance
+  setupModelsAndRoutes();
+
   try {
-    await ensureDatabaseExists();
-    await sequelize.authenticate();
-    const dialect = sequelize.getDialect();
-    console.log(`Connected to database (${dialect}) successfully.`);
-    
     // Sync tables
     await sequelize.sync();
     console.log("Database models synchronized with database.");
@@ -299,7 +361,7 @@ async function startServer() {
       console.log(`Local endpoints mapped: http://localhost:${PORT}/api/`);
     });
   } catch (err) {
-    console.error("Unable to connect to database or start server:", err);
+    console.error("Unable to start server during synchronization:", err);
   }
 }
 
