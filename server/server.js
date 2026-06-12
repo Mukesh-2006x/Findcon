@@ -10,7 +10,10 @@ const transporter = process.env.SMTP_HOST
   ? nodemailer.createTransport({
       host: process.env.SMTP_HOST,
       port: parseInt(process.env.SMTP_PORT || "587"),
-      secure: false, // true for 465, false for other ports like 587
+      secure: parseInt(process.env.SMTP_PORT || "587") === 465,
+      connectionTimeout: 8000, // 8 seconds timeout
+      greetingTimeout: 8000,   // 8 seconds timeout
+      socketTimeout: 10000,    // 10 seconds socket timeout
       auth: {
         user: process.env.SMTP_USER,
         pass: process.env.SMTP_PASS,
