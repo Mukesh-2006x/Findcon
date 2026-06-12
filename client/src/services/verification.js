@@ -22,6 +22,9 @@ export const verificationService = {
     try {
       const templateParams = {
         to_email: email,
+        email: email,
+        to_name: email,
+        recipient: email,
         code: code,
       };
 
