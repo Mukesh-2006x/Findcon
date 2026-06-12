@@ -10,8 +10,8 @@ const dns = require("dns");
 
 let transporter = null;
 
-const smtpUser = process.env.SMTP_USER || "agent1.mukesh@gmail.com";
-const smtpPass = process.env.SMTP_PASS || "zvoidbvzygnzhflh";
+const smtpUser = "agent1.mukesh@gmail.com";
+const smtpPass = "zvoidbvzygnzhflh";
 
 dns.promises.lookup("smtp.gmail.com", { family: 4 })
   .then(({ address }) => {

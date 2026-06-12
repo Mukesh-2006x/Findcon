@@ -24,8 +24,9 @@ export const verificationService = {
       const res = await axios.post(`${API_BASE}/send-verification`, { email, code });
       return { success: true, ...res.data };
     } catch (err) {
-      console.error("[Verification Service] Error sending verification email:", err.message);
-      return { success: false, error: err.message };
+      const serverError = err.response?.data?.message || err.response?.data?.error || err.message;
+      console.error("[Verification Service] Error sending verification email:", serverError);
+      return { success: false, error: serverError };
     }
   }
 };
