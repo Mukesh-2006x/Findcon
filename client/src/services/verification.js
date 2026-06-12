@@ -1,8 +1,7 @@
-import axios from "axios";
-import { API_BASE } from "../config/api";
+import emailjs from "@emailjs/browser";
 
 /**
- * Centralized Verification & Email Service
+ * Centralized Verification & Email Service (EmailJS Integration)
  */
 export const verificationService = {
   /**
@@ -14,19 +13,30 @@ export const verificationService = {
   },
 
   /**
-   * Sends verification code via server API
+   * Sends verification code via EmailJS REST API directly from browser
    * @param {string} email 
    * @param {string} code 
    * @returns {Promise<object>}
    */
   sendCode: async (email, code) => {
     try {
-      const res = await axios.post(`${API_BASE}/send-verification`, { email, code });
-      return { success: true, ...res.data };
+      const templateParams = {
+        to_email: email,
+        code: code,
+      };
+
+      const res = await emailjs.send(
+        import.meta.env.VITE_EMAILJS_SERVICE_ID,
+        import.meta.env.VITE_EMAILJS_TEMPLATE_ID,
+        templateParams,
+        import.meta.env.VITE_EMAILJS_PUBLIC_KEY
+      );
+
+      console.log("[EmailJS] Verification email sent successfully:", res.status, res.text);
+      return { success: true, status: res.status, text: res.text };
     } catch (err) {
-      const serverError = err.response?.data?.message || err.response?.data?.error || err.message;
-      console.error("[Verification Service] Error sending verification email:", serverError);
-      return { success: false, error: serverError };
+      console.error("[EmailJS] Error sending verification email:", err.message || err);
+      return { success: false, error: err.message || err };
     }
   }
 };
