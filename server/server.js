@@ -6,47 +6,16 @@ const { Sequelize, DataTypes } = require("sequelize");
 require("dotenv").config();
 const nodemailer = require("nodemailer");
 
-const dns = require("dns");
+const transporter = nodemailer.createTransport({
+  host: process.env.SMTP_HOST || "smtp.gmail.com",
+  port: parseInt(process.env.SMTP_PORT || "465"),
+  secure: parseInt(process.env.SMTP_PORT || "465") === 465,
+  auth: {
+    user: process.env.SMTP_USER,
+    pass: process.env.SMTP_PASS,
+  },
+});
 
-// Resolves the SMTP hostname to an IPv4 address to avoid ENETUNREACH on cloud hosts
-function resolveIPv4(hostname) {
-  return new Promise((resolve, reject) => {
-    dns.lookup(hostname, { family: 4 }, (err, address) => {
-      if (err) reject(err);
-      else resolve(address);
-    });
-  });
-}
-
-let transporter = null;
-
-async function initTransporter() {
-  if (!process.env.SMTP_HOST) return;
-  try {
-    const resolvedHost = await resolveIPv4(process.env.SMTP_HOST);
-    console.log(`[SMTP] Resolved ${process.env.SMTP_HOST} → ${resolvedHost} (IPv4)`);
-    transporter = nodemailer.createTransport({
-      host: resolvedHost,
-      port: parseInt(process.env.SMTP_PORT || "587"),
-      secure: process.env.SMTP_SECURE === "true" || parseInt(process.env.SMTP_PORT || "587") === 465,
-      connectionTimeout: 8000,
-      greetingTimeout: 8000,
-      socketTimeout: 10000,
-      auth: {
-        user: process.env.SMTP_USER,
-        pass: process.env.SMTP_PASS || process.env.SMTP_PASSWORD,
-      },
-      tls: {
-        // Keep the original hostname for certificate validation even though we connect by IP
-        servername: process.env.SMTP_HOST,
-        rejectUnauthorized: process.env.REJECT_UNAUTHORIZED === "true"
-      },
-    });
-    console.log("[SMTP] Transporter initialized successfully.");
-  } catch (err) {
-    console.error("[SMTP] Failed to resolve SMTP host or initialize transporter:", err.message);
-  }
-}
 
 
 const app = express();
@@ -281,7 +250,7 @@ app.post("/api/send-verification", async (req, res) => {
 
   try {
     const mailOptions = {
-      from: `"Findcon" <${process.env.SENDER_EMAIL || process.env.EMAIL_FROM || process.env.SMTP_USER || "noreply@findcon.com"}>`,
+      from: `"Findcon" <${process.env.SENDER_EMAIL || process.env.SMTP_USER || "noreply@findcon.com"}>`,
       to: email,
       subject: "Findcon Verification Code",
       html: `
@@ -395,8 +364,6 @@ async function startServer() {
 
   // Define models and routes on the chosen sequelize instance
   setupModelsAndRoutes();
-
-  await initTransporter();
 
   try {
     // Sync tables
