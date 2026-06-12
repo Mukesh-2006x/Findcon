@@ -14,10 +14,10 @@ export const verificationService = {
   },
 
   /**
-   * Sends verification code via server API (using Resend or console fallback)
+   * Sends verification code via server API
    * @param {string} email 
    * @param {string} code 
-   * @returns {Promise<boolean>}
+   * @returns {Promise<object>}
    */
   sendCode: async (email, code) => {
     try {

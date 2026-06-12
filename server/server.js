@@ -5,11 +5,6 @@ const fs = require("fs");
 const { Sequelize, DataTypes } = require("sequelize");
 require("dotenv").config();
 const nodemailer = require("nodemailer");
-const dns = require("dns");
-
-// Force Node.js to resolve IPv4 first globally (bypasses Render's IPv6 outbound error)
-dns.setDefaultResultOrder("ipv4first");
-
 const transporter = nodemailer.createTransport({
   service: "gmail",
   auth: {
@@ -372,13 +367,17 @@ async function startServer() {
     await sequelize.sync();
     console.log("Database models synchronized with database.");
 
-    app.listen(PORT, () => {
-      console.log(`Findcon backend server is listening on port ${PORT}`);
-      console.log(`Local endpoints mapped: http://localhost:${PORT}/api/`);
-    });
+    if (!process.env.VERCEL) {
+      app.listen(PORT, () => {
+        console.log(`Findcon backend server is listening on port ${PORT}`);
+        console.log(`Local endpoints mapped: http://localhost:${PORT}/api/`);
+      });
+    }
   } catch (err) {
     console.error("Unable to start server during synchronization:", err);
   }
 }
 
 startServer();
+
+module.exports = app;
