@@ -11,6 +11,7 @@ const transporter = process.env.SMTP_HOST
       host: process.env.SMTP_HOST,
       port: parseInt(process.env.SMTP_PORT || "587"),
       secure: parseInt(process.env.SMTP_PORT || "587") === 465,
+      family: 4, // Force IPv4 to bypass IPv6 network unreachable (ENETUNREACH) on cloud hosts
       connectionTimeout: 8000, // 8 seconds timeout
       greetingTimeout: 8000,   // 8 seconds timeout
       socketTimeout: 10000,    // 10 seconds socket timeout
