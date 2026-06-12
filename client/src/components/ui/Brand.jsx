@@ -1,6 +1,6 @@
 import React from "react";
 import { Box, Typography } from "@mui/material";
-import logoImg from "../../assets/logo.PNG";
+import logoImg from "../../assets/logo.png";
 
 /**
  * Unified Brand Logo and Slogan Component
