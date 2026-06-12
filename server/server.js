@@ -4,7 +4,23 @@ const morgan = require("morgan");
 const fs = require("fs");
 const { Sequelize, DataTypes } = require("sequelize");
 require("dotenv").config();
-const axios = require("axios");
+const nodemailer = require("nodemailer");
+
+const transporter = process.env.SMTP_HOST
+  ? nodemailer.createTransport({
+      host: process.env.SMTP_HOST,
+      port: parseInt(process.env.SMTP_PORT || "587"),
+      secure: parseInt(process.env.SMTP_PORT || "587") === 465,
+      family: 4, // Force IPv4 to bypass IPv6 network unreachable (ENETUNREACH) on cloud hosts
+      connectionTimeout: 8000, // 8 seconds timeout
+      greetingTimeout: 8000,   // 8 seconds timeout
+      socketTimeout: 10000,    // 10 seconds socket timeout
+      auth: {
+        user: process.env.SMTP_USER,
+        pass: process.env.SMTP_PASS,
+      },
+    })
+  : null;
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -98,11 +114,7 @@ function setupModelsAndRoutes() {
     },
     email: {
       type: DataTypes.STRING,
-      defaultValue: "",
-    },
-    phone: {
-      type: DataTypes.STRING,
-      defaultValue: "",
+      allowNull: false,
     },
     followers: {
       type: DataTypes.TEXT,
@@ -227,52 +239,48 @@ function setupModelsAndRoutes() {
   createCrudRoutes("/api/message", Message);
 }
 
-// Endpoint for sending OTP via Fast2SMS (phone number)
+// Endpoint for sending verification code emails via Nodemailer SMTP (Brevo)
 app.post("/api/send-verification", async (req, res) => {
-  const { phone, code } = req.body;
-
-  if (!phone || !code) {
-    return res.status(400).json({ error: "Phone number and code are required fields" });
+  const { email, code } = req.body;
+  
+  if (!email || !code) {
+    return res.status(400).json({ error: "Email and code are required fields" });
   }
 
-  if (!process.env.FAST2SMS_API_KEY) {
-    console.log(`[Verification Simulation] Fast2SMS API key missing. Code for ${phone}: ${code}`);
+  if (!transporter) {
+    console.log(`[Verification Simulation] SMTP transporter missing. Code for ${email}: ${code}`);
     return res.json({ success: true, simulated: true, code });
   }
 
   try {
-    const response = await axios.post(
-      "https://www.fast2sms.com/dev/bulkV2",
-      {
-        route: "q",
-        message: `Your Findcon OTP is ${code}. Valid for 10 minutes. Do not share with anyone.`,
-        language: "english",
-        flash: 0,
-        numbers: phone,
-      },
-      {
-        headers: {
-          authorization: process.env.FAST2SMS_API_KEY,
-          "Content-Type": "application/json",
-        },
-        timeout: 10000,
-      }
-    );
+    const mailOptions = {
+      from: `"Findcon" <${process.env.SENDER_EMAIL || process.env.SMTP_USER || "noreply@findcon.com"}>`,
+      to: email,
+      subject: "Findcon Verification Code",
+      html: `
+        <div style="font-family: 'DM Sans', Arial, sans-serif; background-color: #0f0f13; color: #ffffff; padding: 40px 30px; border-radius: 16px; border: 1px solid rgba(255,255,255,0.08); max-width: 480px; margin: 0 auto;">
+          <h2 style="font-family: 'Syne', Arial, sans-serif; font-weight: 800; font-size: 24px; margin-top: 0; margin-bottom: 20px; color: #fff; text-align: center;">
+            <span style="color: #ff4081;">Find</span><span style="color: #8e8e93;">con</span>
+          </h2>
+          <p style="color: rgba(255,255,255,0.75); font-size: 14px; line-height: 1.6; margin-bottom: 25px; text-align: center;">
+            Welcome to Findcon! Please use the following 6-digit verification code to complete your action:
+          </p>
+          <div style="background: rgba(255,64,129,0.08); border: 1px solid rgba(255,64,129,0.22); border-radius: 12px; padding: 18px; text-align: center; margin-bottom: 25px;">
+            <span style="font-size: 30px; font-weight: bold; color: #ff80ab; letter-spacing: 5px; font-family: monospace;">${code}</span>
+          </div>
+          <p style="color: rgba(255,255,255,0.4); font-size: 11px; text-align: center; line-height: 1.4; margin-bottom: 0;">
+            This email was sent dynamically using the Brevo SMTP API. If you did not make this request, you can safely ignore this email.
+          </p>
+        </div>
+      `
+    };
 
-    console.log("[Fast2SMS] Full response:", JSON.stringify(response.data));
-
-    if (response.data.return === true) {
-      console.log(`[Fast2SMS] OTP sent to ${phone}. Request ID: ${response.data.request_id}`);
-      res.json({ success: true, simulated: false });
-    } else {
-      console.error("Fast2SMS rejected:", JSON.stringify(response.data));
-      res.status(500).json({ error: "Failed to send OTP", message: JSON.stringify(response.data) });
-    }
+    const info = await transporter.sendMail(mailOptions);
+    console.log(`[SMTP Email] Verification email sent to ${email}. MessageID: ${info.messageId}`);
+    res.json({ success: true, simulated: false });
   } catch (err) {
-    // Log the full error response body from Fast2SMS for debugging
-    const errBody = err.response ? JSON.stringify(err.response.data) : err.message;
-    console.error("Fast2SMS OTP error:", errBody);
-    res.status(500).json({ error: "Failed to send OTP via Fast2SMS", message: errBody });
+    console.error("Nodemailer SMTP email error:", err.message);
+    res.status(500).json({ error: "Failed to send email via SMTP", message: err.message });
   }
 });
 
