@@ -60,7 +60,7 @@ export default function Register() {
   };
 
   const handleUseridChange = (e) => {
-    const uid = e.target.value;
+    const uid = e.target.value.toLowerCase();
     setUserid(uid);
     // Debounce check
     const timer = setTimeout(() => checkUseridAvailability(uid), 500);
@@ -290,7 +290,7 @@ export default function Register() {
           {/* User ID with availability check */}
           <Box>
             <TextField
-              label="User ID (username)"
+              label="User ID"
               value={userid}
               onChange={handleUseridChange}
               required
