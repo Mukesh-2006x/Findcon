@@ -1,7 +1,8 @@
 import React, { useState } from "react";
 import axios from "axios";
+import { useNavigate } from "react-router-dom";
 import {
-  Box, IconButton, Typography, Avatar, CircularProgress, Divider
+  Box, IconButton, Typography, Avatar, CircularProgress, Divider, Button
 } from "@mui/material";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import CloseIcon from "@mui/icons-material/Close";
@@ -40,6 +41,7 @@ export default function ProfileView({
   profilesMap = {},
   onProfileUpdate // callback to notify parent of changes in posts (likes/comments)
 }) {
+  const navigate = useNavigate();
   // Normalize profileStack to always be an array
   const stack = Array.isArray(profileStack) && profileStack.length > 0 
     ? profileStack 
@@ -204,7 +206,33 @@ export default function ProfileView({
                 )}
               </Box>
               {!vu.loading && currentUser && currentUser.userid !== vu.userid && (
-                <FollowBtn uid={vu.userid} {...followBtnProps} />
+                <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                  <FollowBtn uid={vu.userid} {...followBtnProps} />
+                  <Button
+                    variant="outlined"
+                    onClick={() => {
+                      localStorage.setItem("startChatWith", vu.userid);
+                      if (onClose) onClose();
+                      navigate("/messages");
+                    }}
+                    sx={{
+                      borderColor: "rgba(255,64,129,0.3)",
+                      color: "#ff80ab",
+                      borderRadius: "20px",
+                      textTransform: "none",
+                      fontFamily: "'Syne'",
+                      fontWeight: 700,
+                      fontSize: "11px",
+                      px: 2,
+                      py: 0.4,
+                      minWidth: "68px",
+                      lineHeight: 1.5,
+                      "&:hover": { borderColor: "#ff4081", background: "rgba(255,64,129,0.05)" }
+                    }}
+                  >
+                    Message
+                  </Button>
+                </Box>
               )}
             </div>
 

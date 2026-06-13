@@ -340,6 +340,11 @@ export default function Messages() {
           messagedUserIds.add(otherUserId);
         }
       });
+
+      const startChatWith = localStorage.getItem("startChatWith");
+      if (startChatWith) {
+        messagedUserIds.add(startChatWith);
+      }
       
       // Show only: people you follow + people who messaged you (exclude followers who haven't messaged)
       const inboxUserIds = new Set([...followedUids, ...messagedUserIds]);
@@ -375,6 +380,16 @@ export default function Messages() {
       
       setFollowingUsers(inboxUsers);
       setConversations(allChats);
+
+      if (startChatWith) {
+        const targetUser = inboxUsers.find(u => u.userid === startChatWith);
+        if (targetUser) {
+          setTimeout(() => {
+            openChat(targetUser);
+          }, 100);
+        }
+        localStorage.removeItem("startChatWith");
+      }
     } catch (err) {
       console.log("Error loading Inbox:", err);
     } finally {
