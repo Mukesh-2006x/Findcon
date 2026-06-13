@@ -35,11 +35,12 @@ import {
   getMediaUrl,
   parsePostTitle
 } from "../utils/helpers";
+import { ENDPOINTS } from "../config/api";
 
-const USER_API    = "https://retoolapi.dev/4M2wEM/credentials";
-const POST_API    = "https://retoolapi.dev/1Rdejb/post";
-const CHAT_API    = "https://retoolapi.dev/6cs4kq/message";
-const PROFILE_API = "https://retoolapi.dev/X1QiCR/persona";
+const USER_API    = ENDPOINTS.USERS;
+const POST_API    = ENDPOINTS.POSTS;
+const CHAT_API    = ENDPOINTS.MESSAGES;
+const PROFILE_API = ENDPOINTS.PROFILES;
 
 export default function Notifications() {
   const { currentUser } = useAuth();
@@ -267,6 +268,13 @@ export default function Notifications() {
         activityFeed.push(notif);
       });
 
+      // Load or initialize comment/mention timestamps
+      const commentTimeKey = `comment_timestamps_${currentUser.userid}`;
+      const commentTimeStr = localStorage.getItem(commentTimeKey);
+      const isFirstCommentsLoad = !commentTimeStr;
+      let commentTimestamps = commentTimeStr ? JSON.parse(commentTimeStr) : {};
+      let updatedCommentTimestamps = false;
+
       // ─── C. COMMENTS & MENTIONS (DYNAMICALLY GENERATED) ───
       myPosts.forEach(post => {
         const postTs = getPostTs(post);
@@ -275,14 +283,24 @@ export default function Notifications() {
           .filter(c => c.user && c.user.trim() !== "" && c.user !== currentUser.userid && c.text && c.text.trim() !== "");
         comments.forEach((c, idx) => {
           if (c.user === currentUser.userid) return;
+          const cleanText = c.text.replace(/[^a-zA-Z0-9]/g, "").slice(0, 20);
+          const commentId = `comment-${post.id}-${c.user}-${cleanText}`;
+          
+          let timestamp = commentTimestamps[commentId];
+          if (!timestamp) {
+            timestamp = isFirstCommentsLoad ? (postTs + 2 + idx) : Date.now();
+            commentTimestamps[commentId] = timestamp;
+            updatedCommentTimestamps = true;
+          }
+
           activityFeed.push({
-            id: `comment-${post.id}-${c.user}-${idx}`,
+            id: commentId,
             type: "comment",
             user: c.user,
             post: post,
             text: `commented: "${c.text.slice(0, 30)}..." on your post`,
             postTs,
-            timestamp: postTs + 2 + idx,
+            timestamp,
           });
         });
       });
@@ -294,18 +312,32 @@ export default function Notifications() {
         comments.forEach((c, idx) => {
           if (c.user && c.user !== currentUser.userid && c.text && c.text.includes(`@${currentUser.userid}`)) {
             if (c.user === currentUser.userid) return;
+            const cleanText = c.text.replace(/[^a-zA-Z0-9]/g, "").slice(0, 20);
+            const mentionId = `mention-${post.id}-${c.user}-${cleanText}`;
+            
+            let timestamp = commentTimestamps[mentionId];
+            if (!timestamp) {
+              timestamp = isFirstCommentsLoad ? (postTs + 3 + idx) : Date.now();
+              commentTimestamps[mentionId] = timestamp;
+              updatedCommentTimestamps = true;
+            }
+
             activityFeed.push({
-              id: `mention-${post.id}-${c.user}-${idx}`,
+              id: mentionId,
               type: "mention",
               user: c.user,
               post: post,
               text: `mentioned you in a comment: "${c.text.slice(0, 30)}..."`,
               postTs,
-              timestamp: postTs + 3 + idx,
+              timestamp,
             });
           }
         });
       });
+
+      if (updatedCommentTimestamps || isFirstCommentsLoad) {
+        localStorage.setItem(commentTimeKey, JSON.stringify(commentTimestamps));
+      }
 
       activityFeed.sort((a, b) => b.timestamp - a.timestamp);
 
@@ -364,23 +396,35 @@ export default function Notifications() {
 
   const handleOpen = () => {
     setOpen(true);
-    setUnreadCount(0);
     if (currentUser) {
-      setTimeout(() => {
-        const seen = getSeenActivityIds();
-        activities.forEach(a => seen.add(a.id));
-        saveSeenActivityIds(seen);
-        setLastViewedAt(Date.now());
-      }, 1500);
-      localStorage.setItem(`lastViewedConfessions_${currentUser.userid}`, String(Date.now()));
+      // Mark current activities as seen
+      const seen = getSeenActivityIds();
+      activities.forEach(a => seen.add(a.id));
+      saveSeenActivityIds(seen);
+      setLastViewedAt(Date.now());
+      
+      // If confessions tab is open, mark them as seen too
+      if (activeTab === 1) {
+        localStorage.setItem(`lastViewedConfessions_${currentUser.userid}`, String(Date.now()));
+      }
+      
+      fetchNotificationData();
     }
   };
 
   const handleTabChange = (event, newValue) => {
     setActiveTab(newValue);
     if (currentUser) {
-      if (newValue === 0) localStorage.setItem(`lastViewedActivity_${currentUser.userid}`, String(Date.now()));
-      else localStorage.setItem(`lastViewedConfessions_${currentUser.userid}`, String(Date.now()));
+      if (newValue === 0) {
+        localStorage.setItem(`lastViewedActivity_${currentUser.userid}`, String(Date.now()));
+        // mark activities as seen
+        const seen = getSeenActivityIds();
+        activities.forEach(a => seen.add(a.id));
+        saveSeenActivityIds(seen);
+      } else {
+        localStorage.setItem(`lastViewedConfessions_${currentUser.userid}`, String(Date.now()));
+      }
+      fetchNotificationData();
     }
   };
 
@@ -745,7 +789,12 @@ export default function Notifications() {
                               ) : null
                             }
                           />
-                          <button className="notif-delete-btn" onClick={() => deleteActivity(act.id)} title="Delete">
+                          {act.type === "follow" && (
+                            <Box sx={{ ml: "auto", mr: 1, display: "flex", alignItems: "center" }}>
+                              <FollowBtnInline uid={act.user} />
+                            </Box>
+                          )}
+                          <button className="notif-delete-btn" onClick={() => deleteActivity(act.id)} title="Delete" style={{ marginLeft: act.type === "follow" ? 0 : "auto" }}>
                             <DeleteOutlineIcon sx={{ fontSize: 16 }} />
                           </button>
                         </ListItem>

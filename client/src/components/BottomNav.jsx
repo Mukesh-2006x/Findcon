@@ -3,6 +3,8 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { Avatar } from "@mui/material";
 import axios from "axios";
+import { ENDPOINTS } from "../config/api";
+
 
 const HomeIcon = ({ filled }) => (
   <svg width="22" height="22" viewBox="0 0 24 24" fill={filled ? "currentColor" : "none"}
@@ -96,7 +98,7 @@ export default function BottomNav() {
     if (!currentUser) return;
     const checkUnread = async () => {
       try {
-        const res = await axios.get("https://retoolapi.dev/6cs4kq/message");
+        const res = await axios.get(ENDPOINTS.MESSAGES);
         const allChats = res.data;
         let unreadCount = 0;
         allChats.forEach(c => {

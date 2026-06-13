@@ -599,6 +599,20 @@ export default function Dashboard() {
     textTransform: "none",
   };
 
+  const [customInterest, setCustomInterest] = useState("");
+
+  const handleAddCustomInterest = () => {
+    const trimmed = customInterest.trim();
+    if (!trimmed) return;
+    const current = form.interests ? form.interests.split(",").map(s => s.trim()).filter(Boolean) : [];
+    const exists = current.some(t => t.toLowerCase() === trimmed.toLowerCase());
+    if (!exists) {
+      const updated = [...current, trimmed];
+      setForm({ ...form, interests: updated.join(", ") });
+    }
+    setCustomInterest("");
+  };
+
   const interestPresets = [
     "Music","Art","Travel","Gaming","Fitness","Photography",
     "Movies","Books","Food","Tech","Fashion","Sports",
@@ -923,10 +937,76 @@ export default function Dashboard() {
             {["Single","In a relationship","Married","Complicated"].map(s => <Chip key={s} label={s} clickable onClick={() => setForm({ ...form, relationshipstatus: s })} sx={chipSx(form.relationshipstatus === s)} />)}
           </Stack>
           <Divider sx={{ my: 2 }} />
-          <Typography sx={{ fontWeight: 600, fontFamily: "'Syne'", mb: 1 }}>Interests</Typography>
+          <Typography sx={{ fontWeight: 600, fontFamily: "'Syne'", mb: 1, fontSize: 13.5 }}>Selected Interests</Typography>
+          {interests.length > 0 ? (
+            <Stack direction="row" spacing={1} sx={{ flexWrap: "wrap", gap: 1, mb: 1.5 }}>
+              {interests.map(tag => (
+                <Chip
+                  key={tag}
+                  label={tag}
+                  onDelete={() => toggleInterest(tag)}
+                  sx={{
+                    background: "rgba(255,64,129,0.12)",
+                    color: "#ff80ab",
+                    border: "1px solid rgba(255,64,129,0.22)",
+                    fontFamily: "'DM Sans'",
+                    fontSize: 12,
+                    "& .MuiChip-deleteIcon": { color: "#ff80ab", "&:hover": { color: "#ff4081" } }
+                  }}
+                />
+              ))}
+            </Stack>
+          ) : (
+            <Typography sx={{ fontSize: 12, color: "rgba(255,255,255,0.4)", mb: 1.5, fontStyle: "italic" }}>
+              No interests added yet. Click presets below or add a custom one!
+            </Typography>
+          )}
+
+          <Box sx={{ display: "flex", gap: 1, mt: 1, mb: 2 }}>
+            <TextField
+              size="small"
+              placeholder="Add custom interest..."
+              value={customInterest}
+              onChange={e => setCustomInterest(e.target.value)}
+              onKeyDown={e => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  handleAddCustomInterest();
+                }
+              }}
+              sx={{
+                flex: 1,
+                "& .MuiOutlinedInput-root": {
+                  color: "#fff",
+                  background: "rgba(255,255,255,0.04)",
+                  borderRadius: "10px",
+                  fontSize: "12.5px",
+                  "& fieldset": { borderColor: "rgba(255,255,255,0.12)" },
+                  "&.Mui-focused fieldset": { borderColor: "#ff4081" }
+                }
+              }}
+            />
+            <Button
+              variant="contained"
+              onClick={handleAddCustomInterest}
+              sx={{
+                background: "linear-gradient(135deg,#ff4081,#f50057)",
+                borderRadius: "10px",
+                textTransform: "none",
+                fontFamily: "'Syne'",
+                fontWeight: 700,
+                fontSize: 12.5,
+                px: 2
+              }}
+            >
+              Add
+            </Button>
+          </Box>
+
+          <Typography sx={{ fontWeight: 600, fontFamily: "'Syne'", mb: 1, fontSize: 13.5 }}>Preset Suggestions</Typography>
           <Stack direction="row" spacing={1} sx={{ flexWrap: "wrap", gap: 1 }}>
             {interestPresets.map(tag => {
-              const active = form.interests?.split(",").map(s => s.trim()).filter(Boolean).includes(tag);
+              const active = interests.includes(tag);
               return <Chip key={tag} label={tag} clickable onClick={() => toggleInterest(tag)} sx={chipSx(active)} />;
             })}
           </Stack>

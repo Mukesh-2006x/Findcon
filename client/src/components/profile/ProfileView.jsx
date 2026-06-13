@@ -22,8 +22,9 @@ import {
   calculateMatchScore,
   parseFollowList
 } from "../../utils/helpers";
+import { ENDPOINTS } from "../../config/api";
 
-const POST_API = "https://retoolapi.dev/1Rdejb/post";
+const POST_API = ENDPOINTS.POSTS;
 
 export default function ProfileView({
   profileStack = [],

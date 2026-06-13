@@ -5,8 +5,9 @@ import {
 } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
 import AddPhotoAlternateIcon from "@mui/icons-material/AddPhotoAlternate";
+import { ENDPOINTS } from "../../config/api";
 
-const POST_API = "https://retoolapi.dev/1Rdejb/post";
+const POST_API = ENDPOINTS.POSTS;
 
 export default function PostComposer({ currentUser, onPostCreated }) {
   const [composerCaption, setComposerCaption] = useState("");
