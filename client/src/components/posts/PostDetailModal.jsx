@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import {
   Dialog, DialogTitle, DialogContent, Box, Avatar, Typography, IconButton,
-  Divider, TextField, CircularProgress, InputAdornment
+  Divider, TextField, CircularProgress, InputAdornment, Chip
 } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
 import FavoriteIcon from "@mui/icons-material/Favorite";

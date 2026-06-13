@@ -86,6 +86,7 @@ export default function Dashboard() {
   const [viewComments, setViewComments] = useState([]);
   const [togglingLike, setTogglingLike] = useState(false);
   const [submittingComment, setSubmittingComment] = useState(false);
+  const [customInterest, setCustomInterest] = useState("");
 
   const [postMenuAnchor, setPostMenuAnchor] = useState(null);
   const [postMenuTarget, setPostMenuTarget] = useState(null);
@@ -598,9 +599,6 @@ export default function Dashboard() {
     fontWeight: 700,
     textTransform: "none",
   };
-
-  const [customInterest, setCustomInterest] = useState("");
-
   const handleAddCustomInterest = () => {
     const trimmed = customInterest.trim();
     if (!trimmed) return;
