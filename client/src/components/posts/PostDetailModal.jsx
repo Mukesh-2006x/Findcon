@@ -1,7 +1,7 @@
-import React, { useState } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import {
   Dialog, DialogTitle, DialogContent, Box, Avatar, Typography, IconButton,
-  Divider, TextField, CircularProgress, InputAdornment, Chip
+  Divider, TextField, CircularProgress, InputAdornment, Chip, List, ListItem
 } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
 import FavoriteIcon from "@mui/icons-material/Favorite";
@@ -22,6 +22,7 @@ export default function PostDetailModal({
   open,
   onClose,
   usersMap = {},
+  profilesMap = {},
   currentUser,
   onLike,
   onCommentSubmit,
@@ -36,6 +37,70 @@ export default function PostDetailModal({
   const [newComment, setNewComment] = useState("");
   const [replyTo, setReplyTo] = useState(null);
   const [likerSearchQuery, setLikerSearchQuery] = useState("");
+
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [mentionQuery, setMentionQuery] = useState("");
+  const inputRef = useRef(null);
+
+  useEffect(() => {
+    const handleOutsideClick = () => setShowSuggestions(false);
+    window.addEventListener("click", handleOutsideClick);
+    return () => window.removeEventListener("click", handleOutsideClick);
+  }, []);
+
+  const handleInputChange = (e) => {
+    const val = e.target.value;
+    setNewComment(val);
+    handleCaretCheck(val, e.target.selectionStart);
+  };
+
+  const handleCaretCheck = (val, caretPos) => {
+    const textBeforeCaret = val.slice(0, caretPos);
+    const match = textBeforeCaret.match(/(?:^|\s)@(\w*)$/);
+    if (match) {
+      setMentionQuery(match[1]);
+      setShowSuggestions(true);
+    } else {
+      setShowSuggestions(false);
+    }
+  };
+
+  const handleSelectMention = (selectedUserId) => {
+    const val = newComment;
+    const caretPos = inputRef.current ? inputRef.current.selectionStart : val.length;
+    const textBeforeCaret = val.slice(0, caretPos);
+    const textAfterCaret = val.slice(caretPos);
+    const lastAtIdx = textBeforeCaret.lastIndexOf('@');
+
+    if (lastAtIdx !== -1) {
+      const insertText = `@${selectedUserId} `;
+      const newVal = val.slice(0, lastAtIdx) + insertText + textAfterCaret;
+      setNewComment(newVal);
+      setShowSuggestions(false);
+
+      setTimeout(() => {
+        if (inputRef.current) {
+          inputRef.current.focus();
+          const newCursorPos = lastAtIdx + insertText.length;
+          inputRef.current.setSelectionRange(newCursorPos, newCursorPos);
+        }
+      }, 0);
+    }
+  };
+
+  const matchedUsers = Object.keys(usersMap)
+    .filter(uid => {
+      if (!mentionQuery) return true;
+      const lowerQuery = mentionQuery.toLowerCase();
+      const displayName = profilesMap[uid]?.username || "";
+      return uid.toLowerCase().includes(lowerQuery) || displayName.toLowerCase().includes(lowerQuery);
+    })
+    .map(uid => ({
+      userid: uid,
+      displayName: profilesMap[uid]?.username || uid,
+      profilepic: usersMap[uid]?.profilepic
+    }))
+    .slice(0, 8);
 
   if (!post) return null;
 
@@ -211,7 +276,7 @@ export default function PostDetailModal({
                           @{cmt.user}
                         </Typography>
                         <Typography sx={{ fontFamily: "'DM Sans'", fontSize: 13, color: "rgba(255,255,255,0.75)", mt: 0.3, lineHeight: 1.5 }}>
-                          <CommentText text={cmt.text} onMentionClick={(uid) => handleLikerClick(uid)} />
+                          <CommentText text={cmt.text} usersMap={usersMap} onMentionClick={(uid) => handleLikerClick(uid)} />
                         </Typography>
                         <Box sx={{ display: "flex", gap: 1, mt: 0.5 }}>
                           <button className="reply-btn" onClick={() => setReplyTo(cmt.user)}>↩ Reply</button>
@@ -294,7 +359,62 @@ export default function PostDetailModal({
       </DialogContent>
 
       {currentUser && (
-        <Box className="comment-input-row">
+        <Box className="comment-input-row" sx={{ position: "relative" }}>
+          {showSuggestions && matchedUsers.length > 0 && (
+            <Box
+              onClick={e => e.stopPropagation()}
+              sx={{
+                position: "absolute",
+                bottom: "100%",
+                left: 16,
+                right: 16,
+                zIndex: 10,
+                background: "rgba(20, 20, 30, 0.95)",
+                backdropFilter: "blur(20px)",
+                border: "1px solid rgba(255, 255, 255, 0.08)",
+                borderRadius: "12px",
+                boxShadow: "0 -8px 24px rgba(0,0,0,0.5), 0 8px 24px rgba(0,0,0,0.5)",
+                maxHeight: 200,
+                overflowY: "auto",
+                mb: 1
+              }}
+            >
+              <List disablePadding>
+                {matchedUsers.map((u, idx) => (
+                  <ListItem
+                    key={u.userid}
+                    onClick={() => handleSelectMention(u.userid)}
+                    sx={{
+                      display: "flex",
+                      alignItems: "center",
+                      cursor: "pointer",
+                      py: 1,
+                      px: 2,
+                      borderBottom: idx < matchedUsers.length - 1 ? "1px solid rgba(255,255,255,0.04)" : "none",
+                      "&:hover": {
+                        background: "rgba(255, 64, 129, 0.15)",
+                      }
+                    }}
+                  >
+                    <Avatar
+                      src={u.profilepic}
+                      sx={{ width: 28, height: 28, mr: 1.5, fontSize: 12, background: "#ff4081", fontFamily: "'Syne'", fontWeight: 700 }}
+                    >
+                      {u.userid?.[0]?.toUpperCase()}
+                    </Avatar>
+                    <Box sx={{ flex: 1, minWidth: 0 }}>
+                      <Typography sx={{ color: "#fff", fontSize: 13, fontWeight: 700, fontFamily: "'Syne'", lineHeight: 1.2 }}>
+                        {u.displayName}
+                      </Typography>
+                      <Typography sx={{ color: "rgba(255,255,255,0.4)", fontSize: 11, fontFamily: "'DM Sans'" }}>
+                        @{u.userid}
+                      </Typography>
+                    </Box>
+                  </ListItem>
+                ))}
+              </List>
+            </Box>
+          )}
           <Box sx={{ flex: 1 }}>
             {replyTo && (
               <Box sx={{ display: "flex", alignItems: "center", gap: 0.5, mb: 0.5, px: 1, py: 0.3, background: "rgba(255,64,129,0.1)", borderRadius: "8px", width: "fit-content" }}>
@@ -305,11 +425,18 @@ export default function PostDetailModal({
               </Box>
             )}
             <TextField
+              inputRef={inputRef}
               fullWidth
               size="small"
               placeholder={replyTo ? `Reply to @${replyTo}…` : "Add a comment…"}
               value={newComment}
-              onChange={e => setNewComment(e.target.value)}
+              onChange={handleInputChange}
+              onClick={(e) => handleCaretCheck(e.target.value, e.target.selectionStart)}
+              onKeyUp={(e) => {
+                if (e.key === "ArrowLeft" || e.key === "ArrowRight") {
+                  handleCaretCheck(e.target.value, e.target.selectionStart);
+                }
+              }}
               onKeyDown={e => {
                 if (e.key === "Enter" && !e.shiftKey) {
                   e.preventDefault();

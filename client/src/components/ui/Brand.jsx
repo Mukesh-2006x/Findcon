@@ -11,24 +11,24 @@ import logoImg from "../../assets/logo.png";
 export default function Brand({ variant = "small", sx = {} }) {
   if (variant === "large") {
     return (
-      <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', mb: 4, ...sx }}>
-        <Box component="img" src={logoImg} sx={{ width: 60, height: 60, borderRadius: '16px', mb: 1.5, objectFit: 'contain' }} />
+      <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', mb: 2, ...sx }}>
+        <Box component="img" src={logoImg} sx={{ width: 36, height: 36, borderRadius: '8px', mb: 0.8, objectFit: 'contain' }} />
         <Typography sx={{
           fontFamily: "'Syne', sans-serif",
           fontWeight: 800,
-          fontSize: '28px',
+          fontSize: '20px',
           textAlign: 'center',
-          mb: 0.5
+          mb: 0.2
         }}>
           <span style={{ color: '#ff4081' }}>Find</span>
           <span style={{ color: '#8e8e93' }}>con</span>
         </Typography>
         <Typography sx={{
           fontFamily: "'DM Sans', sans-serif",
-          fontSize: '13px',
-          color: 'rgba(255,255,255,0.5)',
+          fontSize: '11px',
+          color: 'rgba(255,255,255,0.4)',
           textAlign: 'center',
-          letterSpacing: '0.5px'
+          letterSpacing: '0.3px'
         }}>
           find people, connect better
         </Typography>

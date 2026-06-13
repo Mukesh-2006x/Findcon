@@ -1,5 +1,5 @@
-import React, { useState } from "react";
-import { Box, Avatar, Typography, IconButton, Chip, TextField } from "@mui/material";
+import React, { useState, useRef, useEffect } from "react";
+import { Box, Avatar, Typography, IconButton, Chip, TextField, List, ListItem } from "@mui/material";
 import FavoriteIcon from "@mui/icons-material/Favorite";
 import FavoriteBorderIcon from "@mui/icons-material/FavoriteBorder";
 import ChatBubbleOutlineOutlinedIcon from "@mui/icons-material/ChatBubbleOutlineOutlined";
@@ -24,9 +24,74 @@ export default function PostCard({
   onLike,
   onOpenPost,
   onQuickCommentSubmit,
-  onOpenProfile
+  onOpenProfile,
+  usersMap = {},
+  profilesMap = {}
 }) {
   const [quickComment, setQuickComment] = useState("");
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [mentionQuery, setMentionQuery] = useState("");
+  const inputRef = useRef(null);
+
+  useEffect(() => {
+    const handleOutsideClick = () => setShowSuggestions(false);
+    window.addEventListener("click", handleOutsideClick);
+    return () => window.removeEventListener("click", handleOutsideClick);
+  }, []);
+
+  const handleInputChange = (e) => {
+    const val = e.target.value;
+    setQuickComment(val);
+    handleCaretCheck(val, e.target.selectionStart);
+  };
+
+  const handleCaretCheck = (val, caretPos) => {
+    const textBeforeCaret = val.slice(0, caretPos);
+    const match = textBeforeCaret.match(/(?:^|\s)@(\w*)$/);
+    if (match) {
+      setMentionQuery(match[1]);
+      setShowSuggestions(true);
+    } else {
+      setShowSuggestions(false);
+    }
+  };
+
+  const handleSelectMention = (selectedUserId) => {
+    const val = quickComment;
+    const caretPos = inputRef.current ? inputRef.current.selectionStart : val.length;
+    const textBeforeCaret = val.slice(0, caretPos);
+    const textAfterCaret = val.slice(caretPos);
+    const lastAtIdx = textBeforeCaret.lastIndexOf('@');
+
+    if (lastAtIdx !== -1) {
+      const insertText = `@${selectedUserId} `;
+      const newVal = val.slice(0, lastAtIdx) + insertText + textAfterCaret;
+      setQuickComment(newVal);
+      setShowSuggestions(false);
+
+      setTimeout(() => {
+        if (inputRef.current) {
+          inputRef.current.focus();
+          const newCursorPos = lastAtIdx + insertText.length;
+          inputRef.current.setSelectionRange(newCursorPos, newCursorPos);
+        }
+      }, 0);
+    }
+  };
+
+  const matchedUsers = Object.keys(usersMap)
+    .filter(uid => {
+      if (!mentionQuery) return true;
+      const lowerQuery = mentionQuery.toLowerCase();
+      const displayName = profilesMap[uid]?.username || "";
+      return uid.toLowerCase().includes(lowerQuery) || displayName.toLowerCase().includes(lowerQuery);
+    })
+    .map(uid => ({
+      userid: uid,
+      displayName: profilesMap[uid]?.username || uid,
+      profilepic: usersMap[uid]?.profilepic
+    }))
+    .slice(0, 8);
 
   const likers = parseLikes(post.likes);
   const isLiked = currentUser && likers.includes(currentUser.userid);
@@ -140,7 +205,7 @@ export default function PostCard({
                 >
                   @{cmt.user}
                 </span>
-                <CommentText text={cmt.text} onMentionClick={onOpenProfile} />
+                <CommentText text={cmt.text} usersMap={usersMap} onMentionClick={onOpenProfile} />
               </Typography>
             ))}
           </Box>
@@ -149,13 +214,75 @@ export default function PostCard({
 
       {/* Quick Comment Input */}
       {currentUser && (
-        <div className="feed-quick-comment">
+        <div className="feed-quick-comment" style={{ position: "relative" }}>
+          {showSuggestions && matchedUsers.length > 0 && (
+            <Box
+              onClick={e => e.stopPropagation()}
+              sx={{
+                position: "absolute",
+                bottom: "100%",
+                left: 16,
+                right: 16,
+                zIndex: 10,
+                background: "rgba(20, 20, 30, 0.95)",
+                backdropFilter: "blur(20px)",
+                border: "1px solid rgba(255, 255, 255, 0.08)",
+                borderRadius: "12px",
+                boxShadow: "0 -8px 24px rgba(0,0,0,0.5), 0 8px 24px rgba(0,0,0,0.5)",
+                maxHeight: 200,
+                overflowY: "auto",
+                mb: 1
+              }}
+            >
+              <List disablePadding>
+                {matchedUsers.map((u, idx) => (
+                  <ListItem
+                    key={u.userid}
+                    onClick={() => handleSelectMention(u.userid)}
+                    sx={{
+                      display: "flex",
+                      alignItems: "center",
+                      cursor: "pointer",
+                      py: 1,
+                      px: 2,
+                      borderBottom: idx < matchedUsers.length - 1 ? "1px solid rgba(255,255,255,0.04)" : "none",
+                      "&:hover": {
+                        background: "rgba(255, 64, 129, 0.15)",
+                      }
+                    }}
+                  >
+                    <Avatar
+                      src={u.profilepic}
+                      sx={{ width: 28, height: 28, mr: 1.5, fontSize: 12, background: "#ff4081", fontFamily: "'Syne'", fontWeight: 700 }}
+                    >
+                      {u.userid?.[0]?.toUpperCase()}
+                    </Avatar>
+                    <Box sx={{ flex: 1, minWidth: 0 }}>
+                      <Typography sx={{ color: "#fff", fontSize: 13, fontWeight: 700, fontFamily: "'Syne'", lineHeight: 1.2 }}>
+                        {u.displayName}
+                      </Typography>
+                      <Typography sx={{ color: "rgba(255,255,255,0.4)", fontSize: 11, fontFamily: "'DM Sans'" }}>
+                        @{u.userid}
+                      </Typography>
+                    </Box>
+                  </ListItem>
+                ))}
+              </List>
+            </Box>
+          )}
           <TextField
+            inputRef={inputRef}
             fullWidth
             size="small"
             placeholder="Add a comment..."
             value={quickComment}
-            onChange={e => setQuickComment(e.target.value)}
+            onChange={handleInputChange}
+            onClick={(e) => handleCaretCheck(e.target.value, e.target.selectionStart)}
+            onKeyUp={(e) => {
+              if (e.key === "ArrowLeft" || e.key === "ArrowRight") {
+                handleCaretCheck(e.target.value, e.target.selectionStart);
+              }
+            }}
             onKeyDown={e => {
               if (e.key === "Enter") {
                 e.preventDefault();

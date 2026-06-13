@@ -417,6 +417,8 @@ export default function Home() {
                   onOpenPost={(p) => setViewPost(p)}
                   onQuickCommentSubmit={handleQuickCommentSubmit}
                   onOpenProfile={openUserProfile}
+                  usersMap={users}
+                  profilesMap={profiles}
                 />
               ))
             )}
@@ -430,6 +432,7 @@ export default function Home() {
         onClose={() => setViewPost(null)}
         post={viewPost}
         usersMap={users}
+        profilesMap={profiles}
         currentUser={currentUser}
         onLike={handleLikePost}
         onCommentSubmit={handlePostDetailComment}

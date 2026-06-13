@@ -69,24 +69,60 @@ export const getMediaLabel = (raw) => {
 
 // ── COMMENT CLICKABLE MENTIONS COMPONENT ──
 
-export const CommentText = ({ text, onMentionClick }) => {
-  if (!text || !text.startsWith("@")) return <>{text}</>;
-  const [mention, ...rest] = text.split(" ");
-  const userid = mention.substring(1);
+export const CommentText = ({ text, usersMap = {}, onMentionClick }) => {
+  if (!text) return null;
+
+  const regex = /(?:^|\s)(@[a-zA-Z0-9_.-]+)/g;
+  const elements = [];
+  let lastIndex = 0;
+  let match;
+
+  while ((match = regex.exec(text)) !== null) {
+    const fullMatch = match[0];
+    const mention = match[1];
+    const userid = mention.substring(1);
+    
+    const matchedKey = usersMap && Object.keys(usersMap).find(k => k.toLowerCase() === userid.toLowerCase());
+    const userExists = !!matchedKey;
+
+    if (userExists) {
+      const startIndex = match.index;
+      const leadingSpaceLength = fullMatch.length - mention.length;
+      
+      const beforeText = text.substring(lastIndex, startIndex + leadingSpaceLength);
+      if (beforeText) {
+        elements.push(beforeText);
+      }
+
+      elements.push(
+        <span
+          key={startIndex}
+          style={{ color: "#ff4081", fontWeight: 600, cursor: "pointer" }}
+          onClick={(e) => {
+            if (onMentionClick) {
+              e.stopPropagation();
+              onMentionClick(matchedKey);
+            }
+          }}
+        >
+          {mention}
+        </span>
+      );
+
+      lastIndex = regex.lastIndex;
+    }
+  }
+
+  const remainingText = text.substring(lastIndex);
+  if (remainingText) {
+    elements.push(remainingText);
+  }
+
   return (
     <>
-      <span
-        style={{ color: "#ff4081", fontWeight: 600, cursor: "pointer" }}
-        onClick={(e) => {
-          if (onMentionClick) {
-            e.stopPropagation();
-            onMentionClick(userid);
-          }
-        }}
-      >
-        {mention}
-      </span>
-      {" " + rest.join(" ")}
+      {elements.map((el, i) => (
+        <React.Fragment key={i}>{el}</React.Fragment>
+      ))}
     </>
   );
 };

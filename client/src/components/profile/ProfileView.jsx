@@ -197,7 +197,7 @@ export default function ProfileView({
               </IconButton>
               <Box sx={{ flex: 1 }}>
                 <Typography sx={{ fontFamily: "'Syne'", fontWeight: 700, fontSize: 16, color: "#fff", lineHeight: 1 }}>
-                  {vu.loading ? "Loading…" : `@${vu.userid}`}
+                  {vu.loading ? "Loading…" : (vu.profile?.username || `@${vu.userid}`)}
                 </Typography>
                 {!vu.loading && vu.posts && (
                   <Typography sx={{ fontFamily: "'DM Sans'", fontSize: 11, color: "rgba(255,255,255,0.35)", mt: 0.2 }}>
@@ -254,9 +254,14 @@ export default function ProfileView({
                       </Avatar>
                     </div>
                   </div>
-                  <Typography sx={{ fontFamily: "'Syne'", fontWeight: 800, fontSize: 22, color: "#fff", letterSpacing: "-0.3px", position: "relative", zIndex: 1 }}>
-                    @{vu.userid}
+                  <Typography sx={{ fontFamily: "'Syne'", fontWeight: 800, fontSize: 22, color: "#fff", letterSpacing: "-0.3px", position: "relative", zIndex: 1, mb: 0.2 }}>
+                    {vu.profile?.username || vu.userid}
                   </Typography>
+                  {vu.profile?.username && (
+                    <Typography sx={{ fontFamily: "'DM Sans'", fontSize: 13, color: "rgba(255,255,255,0.45)", mt: 0.2, position: "relative", zIndex: 1, mb: 1, textAlign: "center" }}>
+                      @{vu.userid}
+                    </Typography>
+                  )}
                   <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", gap: 1, mt: 0.8, flexWrap: "wrap", position: "relative", zIndex: 1 }}>
                     {vu.profile?.profession && (
                       <Box sx={{ px: 1.4, py: 0.3, borderRadius: "20px", background: "rgba(255,64,129,0.15)", border: "1px solid rgba(255,64,129,0.3)" }}>
@@ -484,6 +489,7 @@ export default function ProfileView({
           onClose={() => setActivePost(null)}
           post={activePost}
           usersMap={usersMap}
+          profilesMap={profilesMap}
           currentUser={currentUser}
           onLike={handlePostLike}
           onCommentSubmit={handlePostCommentSubmit}

@@ -1,7 +1,11 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { Box, TextField, Button, Typography, Snackbar, Alert, CircularProgress } from '@mui/material';
+import {
+  Box, TextField, Button, Typography, Snackbar, Alert, CircularProgress,
+  Dialog, DialogTitle, DialogContent, IconButton
+} from '@mui/material';
+import CloseIcon from '@mui/icons-material/Close';
 import axios from 'axios';
 import PhotoCameraIcon from '@mui/icons-material/PhotoCamera';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
@@ -32,6 +36,7 @@ export default function Register() {
   const [sendingCode, setSendingCode] = useState(false);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [profilePicUrl, setProfilePicUrl] = useState('');
+  const [verifyDialogOpen, setVerifyDialogOpen] = useState(false);
 
   // Check if userid exists in API
   const checkUseridAvailability = async (uid) => {
@@ -108,7 +113,6 @@ export default function Register() {
 
     setSendingCode(true);
     try {
-      // Generate a 6-digit code
       const code = verificationService.generateCode();
       setVerificationCode(code);
       const res = await verificationService.sendCode(email, code);
@@ -128,6 +132,7 @@ export default function Register() {
             severity: 'success' 
           });
         }
+        setVerifyDialogOpen(true);
       } else {
         setSnack({ 
           open: true, 
@@ -152,6 +157,7 @@ export default function Register() {
 
     if (verificationInput === verificationCode) {
       setEmailVerified(true);
+      setVerifyDialogOpen(false);
       setSnack({ open: true, message: 'Email verified successfully', severity: 'success' });
     } else {
       setSnack({ open: true, message: 'Invalid verification code', severity: 'error' });
@@ -198,17 +204,17 @@ export default function Register() {
 
   return (
     <Box sx={{
-      minHeight: '85vh',
+      minHeight: '80vh',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
       px: 2,
-      py: 4
+      py: 2
     }}>
       <Box sx={{
         width: '100%',
-        maxWidth: 480,
-        p: 4,
+        maxWidth: 380,
+        p: 3,
         background: 'linear-gradient(160deg, #1c1c28 0%, #141420 100%)',
         border: '1px solid rgba(255,255,255,0.08)',
         borderRadius: '24px',
@@ -227,11 +233,11 @@ export default function Register() {
       }}>
         <Brand variant="large" />
 
-        <Box component="form" onSubmit={handleSubmit} sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+        <Box component="form" onSubmit={handleSubmit} sx={{ display: 'flex', flexDirection: 'column', gap: 1.8 }}>
           {/* Profile Picture Upload */}
           <Box sx={{
             textAlign: 'center',
-            pb: 2,
+            pb: 1.5,
             borderBottom: '1px solid rgba(255,255,255,0.08)'
           }}>
             <input
@@ -244,8 +250,8 @@ export default function Register() {
             <label htmlFor="profile-pic-input">
               <Box sx={{
                 position: 'relative',
-                width: 100,
-                height: 100,
+                width: 70,
+                height: 70,
                 margin: '0 auto',
                 borderRadius: '50%',
                 background: profilePicPreview ? `url(${profilePicPreview})` : 'rgba(255,64,129,0.1)',
@@ -264,17 +270,17 @@ export default function Register() {
                   backgroundPosition: 'center'
                 }
               }}>
-                {uploadingPhoto && <CircularProgress size={30} sx={{ color: '#ff4081' }} />}
+                {uploadingPhoto && <CircularProgress size={24} sx={{ color: '#ff4081' }} />}
                 {!uploadingPhoto && !profilePicPreview && (
-                  <PhotoCameraIcon sx={{ fontSize: 40, color: 'rgba(255,255,255,0.3)' }} />
+                  <PhotoCameraIcon sx={{ fontSize: 28, color: 'rgba(255,255,255,0.3)' }} />
                 )}
               </Box>
             </label>
             <Typography sx={{
               fontFamily: "'DM Sans', sans-serif",
-              fontSize: '12px',
+              fontSize: '11px',
               color: 'rgba(255,255,255,0.4)',
-              mt: 1,
+              mt: 0.8,
               textAlign: 'center'
             }}>
               {profilePicUrl ? 'Picture uploaded ✓' : 'Upload profile picture (optional)'}
@@ -283,154 +289,21 @@ export default function Register() {
 
           {/* User ID with availability check */}
           <Box>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-              <TextField
-                label="User ID (username)"
-                value={userid}
-                onChange={handleUseridChange}
-                required
-                fullWidth
-                helperText={
-                  userid.length > 0 && userid.length < 3
-                    ? 'Minimum 3 characters'
-                    : useridAvailable === true
-                    ? '✓ Available'
-                    : useridAvailable === false
-                    ? '✗ Already taken'
-                    : ''
-                }
-                sx={{
-                  '& .MuiOutlinedInput-root': {
-                    color: '#fff',
-                    background: 'rgba(255,255,255,0.04)',
-                    borderRadius: '12px',
-                    '& fieldset': {
-                      borderColor:
-                        useridAvailable === true
-                          ? 'rgba(76, 175, 80, 0.5)'
-                          : useridAvailable === false
-                          ? 'rgba(244, 67, 54, 0.5)'
-                          : 'rgba(255,255,255,0.1)'
-                    },
-                    '&:hover fieldset': { borderColor: '#ff4081' },
-                    '&.Mui-focused fieldset': { borderColor: '#ff4081' }
-                  },
-                  '& .MuiInputLabel-root': { color: 'rgba(255,255,255,0.45)' },
-                  '& .MuiInputLabel-root.Mui-focused': { color: '#ff4081' },
-                  '& .MuiFormHelperText-root': { color: 'rgba(255,255,255,0.4)', fontSize: '11px' }
-                }}
-              />
-              {checkingUserid && <CircularProgress size={20} sx={{ color: '#ff4081' }} />}
-              {!checkingUserid && useridAvailable === true && (
-                <CheckCircleIcon sx={{ color: '#4caf50', fontSize: 24 }} />
-              )}
-              {!checkingUserid && useridAvailable === false && (
-                <ErrorIcon sx={{ color: '#f44336', fontSize: 24 }} />
-              )}
-            </Box>
-          </Box>
-
-          {/* Email with verification */}
-          <Box>
             <TextField
-              label="Email"
-              type="email"
-              value={email}
-              onChange={e => setEmail(e.target.value)}
+              label="User ID (username)"
+              value={userid}
+              onChange={handleUseridChange}
               required
               fullWidth
-              disabled={emailVerified}
-              sx={{
-                '& .MuiOutlinedInput-root': {
-                  color: '#fff',
-                  background: emailVerified ? 'rgba(76, 175, 80, 0.08)' : 'rgba(255,255,255,0.04)',
-                  borderRadius: '12px',
-                  '& fieldset': { borderColor: emailVerified ? 'rgba(76, 175, 80, 0.3)' : 'rgba(255,255,255,0.1)' },
-                  '&:hover fieldset': { borderColor: emailVerified ? 'rgba(76, 175, 80, 0.3)' : '#ff4081' },
-                  '&.Mui-focused fieldset': { borderColor: '#ff4081' }
-                },
-                '& .MuiInputLabel-root': { color: 'rgba(255,255,255,0.45)' },
-                '& .MuiInputLabel-root.Mui-focused': { color: '#ff4081' }
-              }}
-              InputProps={{
-                endAdornment: emailVerified && <CheckCircleIcon sx={{ color: '#4caf50', mr: 1 }} />
-              }}
-            />
-            {!emailVerified && (
-              <Box sx={{ display: 'flex', gap: 1, mt: 1 }}>
-                <Button
-                  size="small"
-                  variant="outlined"
-                  onClick={sendVerificationCode}
-                  disabled={!email || sendingCode}
-                  sx={{
-                    borderColor: '#ff4081',
-                    color: '#ff4081',
-                    fontFamily: "'DM Sans', sans-serif",
-                    fontSize: '12px',
-                    textTransform: 'none',
-                    flex: 1,
-                    '&:hover': { borderColor: '#ff80ab', color: '#ff80ab' }
-                  }}
-                >
-                  {sendingCode ? <CircularProgress size={16} sx={{ mr: 1 }} /> : null}
-                  {sendingCode ? 'Sending...' : 'Send Code'}
-                </Button>
-              </Box>
-            )}
-            {verificationCode && !emailVerified && (
-              <Box sx={{ display: 'flex', gap: 1, mt: 1 }}>
-                <TextField
-                  placeholder="Enter verification code"
-                  value={verificationInput}
-                  onChange={e => setVerificationInput(e.target.value)}
-                  size="small"
-                  sx={{
-                    flex: 1,
-                    '& .MuiOutlinedInput-root': {
-                      color: '#fff',
-                      background: 'rgba(255,255,255,0.04)',
-                      borderRadius: '8px',
-                      '& fieldset': { borderColor: 'rgba(255,255,255,0.1)' },
-                      '&:hover fieldset': { borderColor: '#ff4081' },
-                      '&.Mui-focused fieldset': { borderColor: '#ff4081' }
-                    },
-                    '& .MuiInputLabel-root': { color: 'rgba(255,255,255,0.45)' }
-                  }}
-                />
-                <Button
-                  size="small"
-                  variant="contained"
-                  onClick={verifyEmail}
-                  sx={{
-                    background: 'linear-gradient(135deg, #ff4081, #f50057)',
-                    fontFamily: "'DM Sans', sans-serif",
-                    fontSize: '12px',
-                    textTransform: 'none',
-                    borderRadius: '8px'
-                  }}
-                >
-                  Verify
-                </Button>
-              </Box>
-            )}
-          </Box>
-
-          {/* Password with length indicator */}
-          <Box>
-            <TextField
-              label="Password"
-              type="password"
-              value={password}
-              onChange={e => setPassword(e.target.value)}
-              required
-              fullWidth
+              size="small"
               helperText={
-                password.length > 0
-                  ? password.length < 6
-                    ? `${password.length}/6 characters minimum`
-                    : '✓ Strong password'
-                  : '6 characters minimum'
+                userid.length > 0 && userid.length < 3
+                  ? 'Minimum 3 characters'
+                  : useridAvailable === true
+                  ? '✓ Available'
+                  : useridAvailable === false
+                  ? '✗ Already taken'
+                  : ''
               }
               sx={{
                 '& .MuiOutlinedInput-root': {
@@ -439,55 +312,138 @@ export default function Register() {
                   borderRadius: '12px',
                   '& fieldset': {
                     borderColor:
-                      password.length > 0 && password.length >= 6
-                        ? 'rgba(76, 175, 80, 0.3)'
+                      useridAvailable === true
+                        ? 'rgba(76, 175, 80, 0.5)'
+                        : useridAvailable === false
+                        ? 'rgba(244, 67, 54, 0.5)'
                         : 'rgba(255,255,255,0.1)'
                   },
                   '&:hover fieldset': { borderColor: '#ff4081' },
                   '&.Mui-focused fieldset': { borderColor: '#ff4081' }
                 },
-                '& .MuiInputLabel-root': { color: 'rgba(255,255,255,0.45)' },
+                '& .MuiInputLabel-root': { color: 'rgba(255,255,255,0.45)', fontSize: '13px' },
                 '& .MuiInputLabel-root.Mui-focused': { color: '#ff4081' },
-                '& .MuiFormHelperText-root': { color: 'rgba(255,255,255,0.4)', fontSize: '11px' }
+                '& .MuiFormHelperText-root': { color: 'rgba(255,255,255,0.4)', fontSize: '10px', mt: 0.3 }
+              }}
+              InputProps={{
+                endAdornment: (
+                  <>
+                    {checkingUserid && <CircularProgress size={16} sx={{ color: '#ff4081' }} />}
+                    {!checkingUserid && useridAvailable === true && (
+                      <CheckCircleIcon sx={{ color: '#4caf50', fontSize: 18 }} />
+                    )}
+                    {!checkingUserid && useridAvailable === false && (
+                      <ErrorIcon sx={{ color: '#f44336', fontSize: 18 }} />
+                    )}
+                  </>
+                )
               }}
             />
           </Box>
 
-          <TextField
-            label="Confirm Password"
-            type="password"
-            value={confirm}
-            onChange={e => setConfirm(e.target.value)}
-            required
-            fullWidth
-            helperText={
-              confirm.length > 0
-                ? password === confirm
-                  ? '✓ Passwords match'
-                  : '✗ Passwords do not match'
-                : ''
-            }
-            sx={{
-              '& .MuiOutlinedInput-root': {
-                color: '#fff',
-                background: 'rgba(255,255,255,0.04)',
-                borderRadius: '12px',
-                '& fieldset': {
-                  borderColor:
-                    confirm.length > 0 && password === confirm
-                      ? 'rgba(76, 175, 80, 0.3)'
-                      : confirm.length > 0
-                      ? 'rgba(244, 67, 54, 0.3)'
-                      : 'rgba(255,255,255,0.1)'
+          {/* Email with verification */}
+          <Box sx={{ display: 'flex', gap: 1.5, alignItems: 'center' }}>
+            <TextField
+              label="Email"
+              type="email"
+              value={email}
+              onChange={e => setEmail(e.target.value)}
+              required
+              fullWidth
+              disabled={emailVerified}
+              size="small"
+              sx={{
+                flex: 1,
+                '& .MuiOutlinedInput-root': {
+                  color: '#fff',
+                  background: emailVerified ? 'rgba(76, 175, 80, 0.08)' : 'rgba(255,255,255,0.04)',
+                  borderRadius: '12px',
+                  '& fieldset': { borderColor: emailVerified ? 'rgba(76, 175, 80, 0.3)' : 'rgba(255,255,255,0.1)' },
+                  '&:hover fieldset': { borderColor: emailVerified ? 'rgba(76, 175, 80, 0.3)' : '#ff4081' },
+                  '&.Mui-focused fieldset': { borderColor: '#ff4081' }
                 },
-                '&:hover fieldset': { borderColor: '#ff4081' },
-                '&.Mui-focused fieldset': { borderColor: '#ff4081' }
-              },
-              '& .MuiInputLabel-root': { color: 'rgba(255,255,255,0.45)' },
-              '& .MuiInputLabel-root.Mui-focused': { color: '#ff4081' },
-              '& .MuiFormHelperText-root': { color: 'rgba(255,255,255,0.4)', fontSize: '11px' }
-            }}
-          />
+                '& .MuiInputLabel-root': { color: 'rgba(255,255,255,0.45)', fontSize: '13px' },
+                '& .MuiInputLabel-root.Mui-focused': { color: '#ff4081' }
+              }}
+              InputProps={{
+                endAdornment: emailVerified && <CheckCircleIcon sx={{ color: '#4caf50', fontSize: 18 }} />
+              }}
+            />
+            {!emailVerified && (
+              <Button
+                variant="contained"
+                onClick={sendVerificationCode}
+                disabled={sendingCode}
+                sx={{
+                  background: 'linear-gradient(135deg, #ff4081, #f50057)',
+                  borderRadius: '12px',
+                  px: 2.5,
+                  py: 1,
+                  fontSize: '12.5px',
+                  fontWeight: 700,
+                  fontFamily: "'Syne', sans-serif",
+                  textTransform: 'none',
+                  whiteSpace: 'nowrap',
+                  height: 40,
+                  '&:hover': {
+                    background: 'linear-gradient(135deg, #e91e63, #d81b60)'
+                  }
+                }}
+              >
+                {sendingCode ? <CircularProgress size={16} sx={{ color: '#fff' }} /> : 'Verify'}
+              </Button>
+            )}
+          </Box>
+
+          {/* Password side by side */}
+          <Box sx={{ display: 'flex', gap: 1.5 }}>
+            <TextField
+              label="Password"
+              type="password"
+              value={password}
+              onChange={e => setPassword(e.target.value)}
+              required
+              fullWidth
+              size="small"
+              helperText={password.length > 0 && password.length < 6 ? 'Min 6 chars' : ''}
+              sx={{
+                '& .MuiOutlinedInput-root': {
+                  color: '#fff',
+                  background: 'rgba(255,255,255,0.04)',
+                  borderRadius: '12px',
+                  '& fieldset': { borderColor: 'rgba(255,255,255,0.1)' },
+                  '&:hover fieldset': { borderColor: '#ff4081' },
+                  '&.Mui-focused fieldset': { borderColor: '#ff4081' }
+                },
+                '& .MuiInputLabel-root': { color: 'rgba(255,255,255,0.45)', fontSize: '13px' },
+                '& .MuiInputLabel-root.Mui-focused': { color: '#ff4081' },
+                '& .MuiFormHelperText-root': { color: 'rgba(255,255,255,0.4)', fontSize: '10px' }
+              }}
+            />
+            <TextField
+              label="Confirm"
+              type="password"
+              value={confirm}
+              onChange={e => setConfirm(e.target.value)}
+              required
+              fullWidth
+              size="small"
+              helperText={confirm.length > 0 && password !== confirm ? 'No match' : ''}
+              sx={{
+                '& .MuiOutlinedInput-root': {
+                  color: '#fff',
+                  background: 'rgba(255,255,255,0.04)',
+                  borderRadius: '12px',
+                  '& fieldset': { borderColor: 'rgba(255,255,255,0.1)' },
+                  '&:hover fieldset': { borderColor: '#ff4081' },
+                  '&.Mui-focused fieldset': { borderColor: '#ff4081' }
+                },
+                '& .MuiInputLabel-root': { color: 'rgba(255,255,255,0.45)', fontSize: '13px' },
+                '& .MuiInputLabel-root.Mui-focused': { color: '#ff4081' },
+                '& .MuiFormHelperText-root': { color: 'rgba(255,255,255,0.4)', fontSize: '10px' }
+              }}
+            />
+          </Box>
 
           <Button
             type="submit"
@@ -496,13 +452,14 @@ export default function Register() {
             sx={{
               background: 'linear-gradient(135deg, #ff4081, #f50057)',
               borderRadius: '12px',
-              py: 1.4,
+              py: 1.2,
               fontFamily: "'Syne', sans-serif",
               fontWeight: 700,
-              fontSize: '15px',
+              fontSize: '14.5px',
               textTransform: 'none',
               boxShadow: '0 4px 15px rgba(255,64,129,0.3)',
               transition: 'transform 0.15s, box-shadow 0.2s',
+              mt: 0.5,
               '&:hover': {
                 background: 'linear-gradient(135deg, #e91e63, #d81b60)',
                 boxShadow: '0 6px 20px rgba(255,64,129,0.45)'
@@ -520,7 +477,7 @@ export default function Register() {
             sx={{
               color: 'rgba(255,255,255,0.5)',
               fontFamily: "'DM Sans', sans-serif",
-              fontSize: '13.5px',
+              fontSize: '13px',
               textTransform: 'none',
               '&:hover': { color: '#ff80ab', background: 'rgba(255,64,129,0.04)' }
             }}
@@ -529,6 +486,88 @@ export default function Register() {
           </Button>
         </Box>
       </Box>
+
+      {/* ── EMAIL VERIFICATION DIALOG ── */}
+      <Dialog
+        open={verifyDialogOpen}
+        onClose={() => setVerifyDialogOpen(false)}
+        maxWidth="xs"
+        fullWidth
+        PaperProps={{
+          sx: {
+            background: '#1c1c28',
+            border: '1px solid rgba(255,255,255,0.08)',
+            borderRadius: '20px',
+            color: '#fff',
+            p: 1.5
+          }
+        }}
+      >
+        <DialogTitle sx={{ fontFamily: "'Syne', sans-serif", fontWeight: 700, fontSize: '18px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', pb: 1 }}>
+          Verify Your Email
+          <IconButton onClick={() => setVerifyDialogOpen(false)} sx={{ color: 'rgba(255,255,255,0.4)' }}>
+            <CloseIcon sx={{ fontSize: 18 }} />
+          </IconButton>
+        </DialogTitle>
+        <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: 1 }}>
+          <Typography sx={{ fontFamily: "'DM Sans', sans-serif", fontSize: '13px', color: 'rgba(255,255,255,0.7)', lineHeight: 1.5 }}>
+            We've sent a 6-digit verification code to <strong>{email}</strong>. Please enter the code below to verify your email.
+          </Typography>
+          <TextField
+            fullWidth
+            placeholder="Enter 6-digit code"
+            value={verificationInput}
+            onChange={e => setVerificationInput(e.target.value)}
+            size="small"
+            sx={{
+              '& .MuiOutlinedInput-root': {
+                color: '#fff',
+                background: 'rgba(255,255,255,0.04)',
+                borderRadius: '10px',
+                '& fieldset': { borderColor: 'rgba(255,255,255,0.1)' },
+                '&:hover fieldset': { borderColor: '#ff4081' },
+                '&.Mui-focused fieldset': { borderColor: '#ff4081' }
+              }
+            }}
+          />
+          <Box sx={{ display: 'flex', gap: 1.5, mt: 1 }}>
+            <Button
+              variant="outlined"
+              fullWidth
+              onClick={sendVerificationCode}
+              disabled={sendingCode}
+              sx={{
+                borderColor: '#ff4081',
+                color: '#ff4081',
+                borderRadius: '10px',
+                textTransform: 'none',
+                fontFamily: "'DM Sans', sans-serif",
+                fontSize: '13px',
+                '&:hover': { borderColor: '#ff80ab', background: 'rgba(255,64,129,0.04)' }
+              }}
+            >
+              {sendingCode ? 'Resending...' : 'Resend Code'}
+            </Button>
+            <Button
+              variant="contained"
+              fullWidth
+              onClick={verifyEmail}
+              sx={{
+                background: 'linear-gradient(135deg, #ff4081, #f50057)',
+                borderRadius: '10px',
+                textTransform: 'none',
+                fontFamily: "'Syne', sans-serif",
+                fontWeight: 700,
+                fontSize: '13px',
+                boxShadow: '0 4px 10px rgba(255,64,129,0.2)',
+                '&:hover': { background: 'linear-gradient(135deg, #e91e63, #d81b60)' }
+              }}
+            >
+              Verify Code
+            </Button>
+          </Box>
+        </DialogContent>
+      </Dialog>
 
       <Snackbar open={snack.open} autoHideDuration={6000} onClose={() => setSnack({ ...snack, open: false })}>
         <Alert severity={snack.severity} sx={{ width: '100%', borderRadius: '10px' }}>

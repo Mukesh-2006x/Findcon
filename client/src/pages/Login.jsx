@@ -125,12 +125,13 @@ export default function Login() {
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
-      px: 2
+      px: 2,
+      py: 2
     }}>
       <Box sx={{
         width: '100%',
-        maxWidth: 400,
-        p: 4,
+        maxWidth: 360,
+        p: 3,
         background: 'linear-gradient(160deg, #1c1c28 0%, #141420 100%)',
         border: '1px solid rgba(255,255,255,0.08)',
         borderRadius: '24px',
@@ -149,12 +150,13 @@ export default function Login() {
       }}>
         <Brand variant="large" />
 
-        <Box component="form" onSubmit={handleSubmit} sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
+        <Box component="form" onSubmit={handleSubmit} sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
           <TextField
-            label="User ID (email)"
+            label="User ID"
             value={userid}
             onChange={e => setUserid(e.target.value)}
             required
+            size="small"
             sx={{
               '& .MuiOutlinedInput-root': {
                 color: '#fff',
@@ -164,7 +166,7 @@ export default function Login() {
                 '&:hover fieldset': { borderColor: '#ff4081' },
                 '&.Mui-focused fieldset': { borderColor: '#ff4081' }
               },
-              '& .MuiInputLabel-root': { color: 'rgba(255,255,255,0.45)' },
+              '& .MuiInputLabel-root': { color: 'rgba(255,255,255,0.45)', fontSize: '13px' },
               '& .MuiInputLabel-root.Mui-focused': { color: '#ff4081' }
             }}
           />
@@ -174,6 +176,7 @@ export default function Login() {
             value={password}
             onChange={e => setPassword(e.target.value)}
             required
+            size="small"
             sx={{
               '& .MuiOutlinedInput-root': {
                 color: '#fff',
@@ -183,7 +186,7 @@ export default function Login() {
                 '&:hover fieldset': { borderColor: '#ff4081' },
                 '&.Mui-focused fieldset': { borderColor: '#ff4081' }
               },
-              '& .MuiInputLabel-root': { color: 'rgba(255,255,255,0.45)' },
+              '& .MuiInputLabel-root': { color: 'rgba(255,255,255,0.45)', fontSize: '13px' },
               '& .MuiInputLabel-root.Mui-focused': { color: '#ff4081' }
             }}
           />
@@ -210,10 +213,10 @@ export default function Login() {
             sx={{
               background: 'linear-gradient(135deg, #ff4081, #f50057)',
               borderRadius: '12px',
-              py: 1.4,
+              py: 1.2,
               fontFamily: "'Syne', sans-serif",
               fontWeight: 700,
-              fontSize: '15px',
+              fontSize: '14.5px',
               textTransform: 'none',
               boxShadow: '0 4px 15px rgba(255,64,129,0.3)',
               transition: 'transform 0.15s, box-shadow 0.2s',
@@ -234,7 +237,7 @@ export default function Login() {
             sx={{
               color: 'rgba(255,255,255,0.5)',
               fontFamily: "'DM Sans', sans-serif",
-              fontSize: '13.5px',
+              fontSize: '13px',
               textTransform: 'none',
               '&:hover': { color: '#ff80ab', background: 'rgba(255,64,129,0.04)' }
             }}

@@ -740,9 +740,14 @@ export default function Dashboard() {
                 <input type="file" ref={picInputRef} accept="image/*" hidden onChange={handleProfilePicChange} />
               </div>
 
-              <Typography sx={{ fontFamily: "'Syne'", fontWeight: 800, fontSize: 22, color: "#fff", textAlign: "center", letterSpacing: "-0.3px", mb: 0.5 }}>
-                @{user?.userid}
+              <Typography sx={{ fontFamily: "'Syne'", fontWeight: 800, fontSize: 22, color: "#fff", textAlign: "center", letterSpacing: "-0.3px", mb: 0.2 }}>
+                {profile?.username || user?.userid}
               </Typography>
+              {profile?.username && (
+                <Typography sx={{ fontFamily: "'DM Sans'", fontSize: 13, color: "rgba(255,255,255,0.45)", textAlign: "center", mb: 1 }}>
+                  @{user?.userid}
+                </Typography>
+              )}
 
               {profile?.profession && (
                 <Box sx={{ display: "flex", justifyContent: "center", mb: 2 }}>
@@ -831,7 +836,7 @@ export default function Dashboard() {
                 </Button>
                 <Button fullWidth variant="outlined" startIcon={<EditNoteIcon />} onClick={() => { setNewUserid(user.userid); setEditOpen(true); }}
                   sx={{ borderColor: "rgba(255,255,255,0.12)", color: "rgba(255,255,255,0.7)", borderRadius: "14px", textTransform: "none", fontFamily: "'Syne'", fontSize: 14.5, fontWeight: 600, "&:hover": { borderColor: "#ff4081", background: "rgba(255,64,129,0.04)" } }}>
-                  Change Username
+                  Edit UserID
                 </Button>
               </Stack>
             </Box>
@@ -917,6 +922,7 @@ export default function Dashboard() {
       <Dialog open={open} onClose={() => setOpen(false)} fullWidth className="dialog-dark">
         <DialogTitle>Edit Profile</DialogTitle>
         <DialogContent>
+          <TextField name="username" label="Display Name (Username)" fullWidth margin="dense" value={form.username || ""} onChange={handleChange} />
           <TextField name="profession" label="Profession" fullWidth margin="dense" value={form.profession} onChange={handleChange} />
           <TextField name="city" label="City" fullWidth margin="dense" value={form.city} onChange={handleChange} />
           <TextField name="bio" label="Bio" fullWidth margin="dense" multiline rows={2} value={form.bio} onChange={handleChange} />
@@ -1017,14 +1023,14 @@ export default function Dashboard() {
 
       {/* ── EDIT USERNAME DIALOG ── */}
       <Dialog open={editOpen} onClose={() => setEditOpen(false)} fullWidth maxWidth="xs" className="dialog-dark">
-        <DialogTitle>Change Username</DialogTitle>
+        <DialogTitle>Edit UserID</DialogTitle>
         <DialogContent>
-          <TextField fullWidth label="New Username" value={newUserid} onChange={e => setNewUserid(e.target.value.toLowerCase().replace(/\s/g, ""))} margin="dense" />
+          <TextField fullWidth label="New UserID" value={newUserid} onChange={e => setNewUserid(e.target.value.toLowerCase().replace(/\s/g, ""))} margin="dense" />
           <TextField fullWidth type="password" label="Confirm Password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} margin="dense" />
         </DialogContent>
         <DialogActions sx={{ p: 2 }}>
           <Button onClick={() => setEditOpen(false)} sx={{ color: "rgba(255,255,255,0.5)", textTransform: "none" }}>Cancel</Button>
-          <Button variant="contained" onClick={handleUpdateUserid} sx={saveBtnSx}>Update Username</Button>
+          <Button variant="contained" onClick={handleUpdateUserid} sx={saveBtnSx}>Update UserID</Button>
         </DialogActions>
       </Dialog>
 
@@ -1034,6 +1040,7 @@ export default function Dashboard() {
         onClose={() => setViewPost(null)}
         post={viewPost}
         usersMap={usersMap}
+        profilesMap={profilesMap}
         currentUser={currentUser}
         onLike={handleToggleLike}
         onCommentSubmit={handleAddComment}
